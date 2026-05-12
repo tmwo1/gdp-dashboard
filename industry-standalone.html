@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INDUSYNC 3D — منصة الهندسة الصناعية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Cairo:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0:#05060d;
+  --bg-1:#0a0d1a;
+  --bg-2:#111527;
+  --neon:#00f0ff;
+  --neon-2:#7c3aed;
+  --neon-3:#ff2bd6;
+  --or:#ff7a00;
+  --gr:#22ffaa;
+  --ye:#ffd166;
+  --rd:#ff4d6d;
+  --tx:#e8ecff;
+  --tx2:#8b93b8;
+  --tx3:#4a5070;
+  --glass:rgba(20,25,45,.45);
+  --glass-br:rgba(124,58,237,.25);
+  --shadow-neon:0 0 30px rgba(0,240,255,.25),0 0 60px rgba(124,58,237,.15);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg-0);color:var(--tx);font-family:'Cairo',sans-serif;overflow-x:hidden;min-height:100vh}
+body{background:
+  radial-gradient(ellipse at 20% 0%,rgba(124,58,237,.15),transparent 50%),
+  radial-gradient(ellipse at 80% 100%,rgba(0,240,255,.12),transparent 50%),
+  var(--bg-0);
+}
+
+/* ============ 3D CANVAS BG ============ */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.noise-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/></svg>");}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;align-items:center;gap:6px;padding:8px 14px;
+  background:rgba(10,13,26,.55);backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(124,58,237,.25);border-radius:100px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+  max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.logo3d{font-family:'Orbitron',monospace;font-weight:900;font-size:14px;letter-spacing:.1em;
+  padding:6px 14px;background:linear-gradient(135deg,var(--neon),var(--neon-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  border-right:1px solid rgba(255,255,255,.06);padding-left:18px;white-space:nowrap}
+.nl{font-family:'Cairo',sans-serif;font-size:11.5px;color:var(--tx2);background:transparent;border:none;padding:7px 11px;
+  cursor:pointer;border-radius:100px;transition:all .25s;white-space:nowrap;font-weight:600}
+.nl:hover{color:var(--tx);background:rgba(124,58,237,.15)}
+.nl.act{color:#fff;background:linear-gradient(135deg,rgba(0,240,255,.2),rgba(124,58,237,.3));
+  box-shadow:inset 0 0 0 1px rgba(0,240,255,.3),0 0 18px rgba(0,240,255,.15)}
+
+/* ============ HERO 3D ============ */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  perspective:1200px;padding:80px 24px 40px;z-index:2}
+.hero-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--neon);
+  padding:6px 18px;border:1px solid rgba(0,240,255,.25);border-radius:100px;margin-bottom:32px;
+  background:rgba(0,240,255,.04);text-transform:uppercase;
+  box-shadow:0 0 24px rgba(0,240,255,.1),inset 0 0 12px rgba(0,240,255,.05)}
+.hero-title{font-family:'Orbitron',monospace;font-weight:900;
+  font-size:clamp(60px,13vw,180px);line-height:.85;letter-spacing:-.04em;
+  background:linear-gradient(180deg,#fff 20%,rgba(124,58,237,.4) 60%,transparent 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-align:center;position:relative;margin-bottom:8px;
+  filter:drop-shadow(0 0 40px rgba(124,58,237,.4))}
+.hero-title .acc{background:linear-gradient(135deg,var(--neon),var(--neon-3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-title-3d{transform-style:preserve-3d;animation:title3d 8s ease-in-out infinite}
+@keyframes title3d{0%,100%{transform:rotateX(0) rotateY(0)}50%{transform:rotateX(4deg) rotateY(-3deg)}}
+.hero-sub{font-family:'Orbitron',monospace;font-size:clamp(13px,1.6vw,18px);color:var(--neon);
+  letter-spacing:.18em;margin-bottom:16px;text-transform:uppercase}
+.hero-desc{font-size:14px;color:var(--tx2);line-height:1.9;max-width:620px;text-align:center;margin-bottom:38px}
+
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;margin-bottom:38px;
+  perspective:1000px}
+.hstat{padding:18px 28px;background:var(--glass);backdrop-filter:blur(18px);
+  border:1px solid rgba(124,58,237,.25);border-radius:18px;
+  transform-style:preserve-3d;transition:all .4s cubic-bezier(.2,.8,.2,1);
+  position:relative;overflow:hidden}
+.hstat::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(0,240,255,.08),transparent);opacity:0;transition:.4s}
+.hstat:hover{transform:translateZ(20px) rotateY(8deg);border-color:rgba(0,240,255,.4);box-shadow:var(--shadow-neon)}
+.hstat:hover::before{opacity:1}
+.hstat-n{font-family:'Orbitron',monospace;font-size:32px;font-weight:700;
+  background:linear-gradient(135deg,var(--neon),var(--neon-2));-webkit-background-clip:text;background-clip:text;color:transparent;
+  display:block;margin-bottom:4px}
+.hstat-l{font-size:11px;color:var(--tx2);letter-spacing:.08em}
+
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn-3d{position:relative;font-family:'Orbitron',monospace;font-weight:700;font-size:13px;letter-spacing:.12em;
+  padding:14px 36px;border:none;cursor:pointer;border-radius:14px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#000;
+  box-shadow:0 8px 24px rgba(0,240,255,.3),inset 0 1px 0 rgba(255,255,255,.4);
+  transform-style:preserve-3d;transition:all .3s cubic-bezier(.2,.8,.2,1)}
+.btn-3d:hover{transform:translateY(-3px) translateZ(10px);box-shadow:0 14px 36px rgba(0,240,255,.45),0 0 30px rgba(124,58,237,.3)}
+.btn-3d:active{transform:translateY(0)}
+.btn-ghost{background:transparent;border:1px solid rgba(124,58,237,.4);color:var(--tx);
+  box-shadow:inset 0 0 0 1px rgba(124,58,237,.1)}
+.btn-ghost:hover{background:rgba(124,58,237,.15);color:#fff}
+
+/* Floating 3D rings around hero */
+.ring{position:absolute;border:1px solid rgba(124,58,237,.15);border-radius:50%;pointer-events:none;
+  animation:spin var(--d,30s) linear infinite;left:50%;top:50%;transform-style:preserve-3d}
+.ring.r1{width:520px;height:520px;margin:-260px 0 0 -260px;--d:40s;transform:rotateX(70deg)}
+.ring.r2{width:720px;height:720px;margin:-360px 0 0 -360px;--d:60s;animation-direction:reverse;transform:rotateX(60deg) rotateZ(30deg);border-color:rgba(0,240,255,.1)}
+.ring.r3{width:920px;height:920px;margin:-460px 0 0 -460px;--d:80s;transform:rotateX(75deg) rotateZ(-20deg);border-color:rgba(255,43,214,.08)}
+@keyframes spin{to{transform:rotateX(70deg) rotateZ(360deg)}}
+
+/* ============ PAGES ============ */
+.pg{display:none;min-height:100vh;position:relative;z-index:2}
+.pg.act{display:block;animation:pgIn .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes pgIn{from{opacity:0;transform:translateY(20px) translateZ(-50px)}to{opacity:1;transform:none}}
+.wrap{max-width:1300px;margin:0 auto;padding:120px 24px 40px}
+.back{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx2);
+  background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;transition:.2s;margin-bottom:14px}
+.back:hover{color:var(--neon);background:rgba(0,240,255,.05)}
+.crumb{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--neon);letter-spacing:.15em;margin-bottom:6px}
+.h1{font-family:'Orbitron',monospace;font-weight:700;font-size:clamp(28px,4vw,48px);
+  background:linear-gradient(180deg,#fff,rgba(124,58,237,.5));-webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:26px;letter-spacing:-.02em}
+
+/* ============ SERVICES GRID 3D ============ */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;perspective:1400px}
+.svc{position:relative;padding:24px 22px;border-radius:20px;cursor:pointer;
+  background:var(--glass);backdrop-filter:blur(18px);
+  border:1px solid rgba(124,58,237,.2);
+  transform-style:preserve-3d;transition:all .45s cubic-bezier(.2,.8,.2,1);
+  overflow:hidden;text-align:right}
+.svc::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;
+  background:linear-gradient(135deg,rgba(0,240,255,.4),transparent 40%,rgba(124,58,237,.4));
+  -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:.4s}
+.svc::after{content:'';position:absolute;width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,240,255,.25),transparent 60%);
+  top:-50px;right:-50px;opacity:.5;transition:.4s;filter:blur(20px)}
+.svc:hover{transform:translateY(-6px) rotateX(-3deg) rotateY(2deg) translateZ(20px);
+  border-color:rgba(0,240,255,.4);box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 40px rgba(0,240,255,.15)}
+.svc:hover::before{opacity:1}
+.svc:hover::after{opacity:1;width:200px;height:200px}
+.svc-ic{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;margin-bottom:14px;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(124,58,237,.2));
+  border:1px solid rgba(0,240,255,.2);position:relative;z-index:2}
+.svc-name{font-family:'Orbitron',monospace;font-weight:700;font-size:17px;color:#fff;margin-bottom:6px;position:relative;z-index:2}
+.svc-desc{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:14px;position:relative;z-index:2;min-height:60px}
+.svc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;position:relative;z-index:2}
+.svc-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--neon);
+  padding:3px 8px;border:1px solid rgba(0,240,255,.2);border-radius:100px;background:rgba(0,240,255,.04)}
+.svc-go{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--neon);position:relative;z-index:2;
+  display:inline-flex;align-items:center;gap:6px}
+.svc.new::before{opacity:.5}
+.svc-new-pin{position:absolute;top:14px;left:14px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  padding:3px 8px;border-radius:100px;background:linear-gradient(135deg,var(--neon-3),var(--neon-2));color:#fff;z-index:3;
+  box-shadow:0 4px 14px rgba(255,43,214,.4)}
+
+/* ============ KPI ROW 3D ============ */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px;perspective:1200px}
+.kpi{position:relative;padding:18px 20px;border-radius:18px;
+  background:var(--glass);backdrop-filter:blur(18px);
+  border:1px solid rgba(124,58,237,.2);
+  transform-style:preserve-3d;transition:.4s;overflow:hidden}
+.kpi:hover{transform:translateZ(15px) rotateY(4deg);border-color:rgba(0,240,255,.4);box-shadow:var(--shadow-neon)}
+.kpi-live{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gr);display:flex;align-items:center;gap:5px;margin-bottom:10px}
+.kpi-live .d{width:6px;height:6px;border-radius:50%;background:var(--gr);box-shadow:0 0 10px var(--gr);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.kpi-val{font-family:'Orbitron',monospace;font-weight:700;font-size:30px;display:block;margin-bottom:4px;
+  background:linear-gradient(135deg,#fff,var(--neon));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi-val.gr{background:linear-gradient(135deg,var(--gr),#00ffcc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi-val.ye{background:linear-gradient(135deg,var(--ye),#ffa500);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi-val.rd{background:linear-gradient(135deg,var(--rd),#ff006e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi-val.or{background:linear-gradient(135deg,var(--or),#ffae00);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi-lbl{font-size:11.5px;color:var(--tx2)}
+.kpi-ic{position:absolute;top:14px;left:14px;font-size:22px;opacity:.5;transition:.3s}
+.kpi:hover .kpi-ic{opacity:1;transform:scale(1.15) translateZ(20px)}
+
+/* ============ PANEL ============ */
+.panel{background:var(--glass);backdrop-filter:blur(18px);border:1px solid rgba(124,58,237,.18);
+  border-radius:18px;margin-bottom:16px;overflow:hidden;position:relative}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid rgba(124,58,237,.15);background:rgba(124,58,237,.04)}
+.panel-title{font-family:'Orbitron',monospace;font-weight:700;font-size:13px;color:#fff;letter-spacing:.06em}
+.panel-acts{display:flex;gap:8px}
+
+/* ============ BUTTONS ============ */
+.ibtn{font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 14px;border:1px solid;background:transparent;
+  cursor:pointer;border-radius:10px;transition:.2s;letter-spacing:.03em}
+.ibtn-g{border-color:rgba(34,255,170,.4);color:var(--gr)}.ibtn-g:hover{background:rgba(34,255,170,.15);box-shadow:0 0 14px rgba(34,255,170,.2)}
+.ibtn-c{border-color:rgba(0,240,255,.4);color:var(--neon)}.ibtn-c:hover{background:rgba(0,240,255,.15);box-shadow:0 0 14px rgba(0,240,255,.2)}
+.ibtn-o{border-color:rgba(255,122,0,.5);color:var(--or)}.ibtn-o:hover{background:rgba(255,122,0,.15);box-shadow:0 0 14px rgba(255,122,0,.2)}
+.ibtn-r{border-color:rgba(255,77,109,.4);color:var(--rd)}.ibtn-r:hover{background:rgba(255,77,109,.15)}
+.ibtn-p{border-color:rgba(124,58,237,.4);color:var(--neon-2)}.ibtn-p:hover{background:rgba(124,58,237,.15)}
+
+/* ============ TABLE ============ */
+.tw{overflow-x:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.dt th{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:var(--tx2);padding:11px 14px;text-align:right;
+  border-bottom:1px solid rgba(124,58,237,.2);background:rgba(0,0,0,.25)}
+table.dt td{padding:11px 14px;border-bottom:1px solid rgba(124,58,237,.08);vertical-align:middle}
+table.dt tr{transition:.2s}
+table.dt tr:hover td{background:rgba(0,240,255,.04)}
+.b{font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:3px 9px;border-radius:100px;display:inline-block}
+.b.ok{background:rgba(34,255,170,.12);color:var(--gr);border:1px solid rgba(34,255,170,.25)}
+.b.lo{background:rgba(255,209,102,.12);color:var(--ye);border:1px solid rgba(255,209,102,.25)}
+.b.cr{background:rgba(255,77,109,.12);color:var(--rd);border:1px solid rgba(255,77,109,.25)}
+.b.pl{background:rgba(0,240,255,.12);color:var(--neon);border:1px solid rgba(0,240,255,.25)}
+.b.pr{background:rgba(255,122,0,.12);color:var(--or);border:1px solid rgba(255,122,0,.25)}
+.b.dn{background:rgba(34,255,170,.12);color:var(--gr);border:1px solid rgba(34,255,170,.25)}
+.b.ho{background:rgba(124,58,237,.15);color:var(--neon-2);border:1px solid rgba(124,58,237,.3)}
+.act-mini{width:30px;height:30px;border-radius:8px;border:1px solid;background:none;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;transition:.2s;margin-left:4px}
+.act-mini.e{border-color:rgba(0,240,255,.3);color:var(--neon)}.act-mini.e:hover{background:rgba(0,240,255,.15);box-shadow:0 0 12px rgba(0,240,255,.3)}
+.act-mini.d{border-color:rgba(255,77,109,.3);color:var(--rd)}.act-mini.d:hover{background:rgba(255,77,109,.15);box-shadow:0 0 12px rgba(255,77,109,.3)}
+
+/* ============ TABS ============ */
+.tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap;padding:6px;
+  background:rgba(10,13,26,.4);border:1px solid rgba(124,58,237,.15);border-radius:14px;backdrop-filter:blur(12px)}
+.tab{font-family:'Orbitron',monospace;font-size:11px;font-weight:600;color:var(--tx2);background:none;border:none;
+  padding:8px 16px;cursor:pointer;border-radius:10px;transition:.25s;letter-spacing:.04em}
+.tab:hover{color:var(--tx)}
+.tab.act{color:#fff;background:linear-gradient(135deg,rgba(0,240,255,.2),rgba(124,58,237,.25));
+  box-shadow:inset 0 0 0 1px rgba(0,240,255,.3),0 0 16px rgba(0,240,255,.15)}
+.tp{display:none}
+.tp.act{display:block}
+
+/* ============ CALC CARDS ============ */
+.cg{display:grid;gap:14px;padding:18px}
+.cg.c3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.cg.c2{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.cc{padding:16px;background:rgba(5,6,13,.5);border:1px solid rgba(124,58,237,.15);border-radius:14px;
+  transition:.3s;position:relative;overflow:hidden}
+.cc:hover{border-color:rgba(0,240,255,.25);box-shadow:inset 0 0 0 1px rgba(0,240,255,.1)}
+.cc-t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--neon);letter-spacing:.08em;margin-bottom:12px;
+  padding-bottom:8px;border-bottom:1px solid rgba(0,240,255,.1)}
+.cr{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.cl{font-size:11.5px;color:var(--tx2);min-width:100px}
+.ci{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(124,58,237,.2);color:var(--tx);
+  font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 10px;border-radius:8px;outline:none;transition:.2s;width:100%}
+.ci:focus{border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,240,255,.1)}
+.cres{margin-top:10px;padding:10px 12px;border-radius:10px;
+  background:linear-gradient(135deg,rgba(0,240,255,.06),rgba(124,58,237,.06));
+  border:1px solid rgba(0,240,255,.2);font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--neon);text-align:center;min-height:38px;display:flex;align-items:center;justify-content:center}
+.cbtn{width:100%;margin-top:10px;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#000;border:none;padding:10px;
+  cursor:pointer;border-radius:10px;letter-spacing:.08em;transition:.25s;
+  box-shadow:0 4px 14px rgba(0,240,255,.25)}
+.cbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,240,255,.4)}
+
+/* ============ MODAL ============ */
+.mover{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);
+  align-items:center;justify-content:center;padding:20px}
+.mover.open{display:flex}
+.mbox{background:linear-gradient(135deg,rgba(20,25,45,.95),rgba(10,13,26,.95));backdrop-filter:blur(20px);
+  border:1px solid rgba(0,240,255,.3);border-radius:20px;width:min(580px,100%);max-height:90vh;overflow-y:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(0,240,255,.15);animation:mIn .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes mIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.mhd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(124,58,237,.2);
+  background:rgba(124,58,237,.05);position:sticky;top:0;backdrop-filter:blur(12px)}
+.mt{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#fff}
+.mx{width:30px;height:30px;border-radius:10px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.25);
+  color:var(--rd);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.mx:hover{background:rgba(255,77,109,.25)}
+.mbd{padding:20px}
+.mft{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid rgba(124,58,237,.2)}
+.fg{margin-bottom:14px}
+.fl{display:block;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--tx2);letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase}
+.fi{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(124,58,237,.25);color:var(--tx);
+  font-family:'Cairo',sans-serif;font-size:13px;padding:10px 14px;border-radius:10px;outline:none;transition:.2s}
+.fi:focus{border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,240,255,.12)}
+.fi option{background:var(--bg-1)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fbtn-s{background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#000;border:none;
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:700;padding:10px 24px;cursor:pointer;border-radius:10px;letter-spacing:.05em}
+.fbtn-s:hover{box-shadow:0 6px 18px rgba(0,240,255,.35)}
+.fbtn-c{background:transparent;border:1px solid rgba(124,58,237,.3);color:var(--tx2);
+  font-family:'Cairo',sans-serif;font-size:12px;padding:10px 18px;cursor:pointer;border-radius:10px}
+.fbtn-c:hover{color:var(--tx);background:rgba(124,58,237,.1)}
+
+/* ============ MISC ============ */
+.toast{position:fixed;bottom:24px;left:24px;z-index:2000;padding:12px 20px;border-radius:12px;display:none;
+  background:linear-gradient(135deg,rgba(34,255,170,.15),rgba(0,240,255,.1));border:1px solid rgba(34,255,170,.35);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gr);backdrop-filter:blur(12px);
+  box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 24px rgba(34,255,170,.15)}
+.toast.show{display:block;animation:toastIn .3s}
+@keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+
+.editable{cursor:pointer;border-bottom:1px dashed rgba(0,240,255,.3);transition:.2s}
+.editable:hover{border-bottom-color:var(--neon);color:var(--neon)}
+.ie{background:rgba(0,0,0,.6);border:1px solid var(--neon);color:var(--tx);font-family:'Cairo',sans-serif;font-size:12px;padding:4px 8px;border-radius:6px;outline:none;width:100%}
+
+.col2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.col2{grid-template-columns:1fr}.h1{font-size:28px}}
+.col3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:1000px){.col3{grid-template-columns:1fr}}
+
+.sim-out{background:rgba(0,0,0,.4);border:1px solid rgba(0,240,255,.15);padding:14px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--neon);line-height:1.9;white-space:pre-wrap}
+
+.pbar{width:100%;height:6px;background:rgba(124,58,237,.1);border-radius:100px;overflow:hidden}
+.pfill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--neon),var(--neon-2));transition:1s}
+
+/* Bars chart */
+.bars{display:flex;align-items:flex-end;gap:10px;height:170px;padding:18px}
+.bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+.bfill{width:100%;border-radius:6px 6px 0 0;position:relative;cursor:pointer;transition:.3s;
+  background:linear-gradient(180deg,var(--neon),var(--neon-2));
+  box-shadow:0 0 14px rgba(0,240,255,.2)}
+.bfill:hover{filter:brightness(1.3);transform:scaleY(1.04)}
+.bfill::after{content:attr(data-v);position:absolute;top:-22px;left:50%;transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--neon);white-space:nowrap}
+.blbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx2)}
+
+/* Alerts list */
+.alerts{padding:8px 14px}
+.al-item{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;
+  border-radius:10px;background:rgba(0,0,0,.25);border:1px solid rgba(124,58,237,.1)}
+.al-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.al-tag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 9px;border-radius:100px;flex-shrink:0}
+.al-txt{flex:1;font-size:12px}
+.al-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);flex-shrink:0}
+
+/* Gantt */
+.gantt{padding:14px 18px}
+.gantt-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gantt-lbl{min-width:140px;font-size:11px;color:var(--tx2)}
+.gantt-track{flex:1;height:22px;background:rgba(0,0,0,.3);border-radius:6px;position:relative;overflow:hidden;border:1px solid rgba(124,58,237,.1)}
+.gantt-fill{height:100%;position:absolute;border-radius:6px}
+.gantt-pct{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#fff}
+
+/* Footer */
+.foot{padding:30px 24px;text-align:center;color:var(--tx3);font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  border-top:1px solid rgba(124,58,237,.1);margin-top:40px;position:relative;z-index:2}
+
+/* Loader */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--bg-0);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:opacity .6s}
+#loader.gone{opacity:0;pointer-events:none}
+.loader-spin{width:60px;height:60px;border:3px solid rgba(0,240,255,.1);border-top-color:var(--neon);border-radius:50%;animation:lspin 1s linear infinite}
+@keyframes lspin{to{transform:rotate(360deg)}}
+.loader-txt{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:.3em;color:var(--neon)}
+
+/* Search bar */
+.search-box{position:relative;margin-right:6px}
+.search-in{background:rgba(0,0,0,.4);border:1px solid rgba(124,58,237,.25);color:var(--tx);
+  font-family:'Cairo',sans-serif;font-size:11px;padding:6px 14px;border-radius:100px;outline:none;width:160px;transition:.2s}
+.search-in:focus{border-color:var(--neon);width:200px}
+.search-res{position:absolute;top:38px;left:0;right:0;background:rgba(10,13,26,.95);backdrop-filter:blur(20px);
+  border:1px solid rgba(124,58,237,.3);border-radius:14px;overflow:hidden;display:none;z-index:200;
+  box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.search-res.show{display:block}
+.sr-item{padding:9px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(124,58,237,.08);color:var(--tx)}
+.sr-item:hover{background:rgba(0,240,255,.08);color:var(--neon)}
+
+/* About hero section */
+.about{padding:60px 24px;position:relative;z-index:2}
+.about-inner{max-width:1100px;margin:0 auto;text-align:center}
+.about-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--neon);margin-bottom:12px;text-transform:uppercase}
+.about-t{font-family:'Orbitron',monospace;font-weight:700;font-size:clamp(28px,4vw,42px);color:#fff;margin-bottom:14px;letter-spacing:-.02em}
+.about-d{font-size:14px;color:var(--tx2);line-height:1.9;max-width:680px;margin:0 auto 40px}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:36px}
+.feat{padding:18px;background:var(--glass);backdrop-filter:blur(18px);border:1px solid rgba(124,58,237,.2);border-radius:16px;text-align:right;transition:.4s}
+.feat:hover{transform:translateY(-4px);border-color:rgba(0,240,255,.35);box-shadow:0 16px 36px rgba(0,0,0,.4)}
+.feat-ic{font-size:24px;margin-bottom:10px}
+.feat-t{font-family:'Orbitron',monospace;font-weight:700;font-size:14px;color:#fff;margin-bottom:6px}
+.feat-d{font-size:11.5px;color:var(--tx2);line-height:1.7}
+
+.lang-tog{display:flex;background:rgba(0,0,0,.3);border:1px solid rgba(124,58,237,.2);border-radius:100px;overflow:hidden;margin-left:6px}
+.lang-opt{font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;background:none;border:none;color:var(--tx2);cursor:pointer;transition:.2s}
+.lang-opt.act{background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#000;font-weight:700}
+
+@media(max-width:768px){
+  nav{padding:6px 8px;gap:2px;top:8px}
+  .nl{font-size:10px;padding:6px 8px}
+  .logo3d{font-size:11px;padding:5px 10px}
+  .hero{padding-top:100px}
+  .hero-stats{gap:14px}
+  .hstat{padding:14px 20px}
+  .ring{display:none}
+  .wrap{padding-top:90px}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="loader-spin"></div><div class="loader-txt">INDUSYNC 3D :: BOOTING</div></div>
+
+<canvas id="bg-canvas"></canvas>
+<div class="noise-overlay"></div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="mover" id="modal">
+  <div class="mbox">
+    <div class="mhd"><span class="mt" id="m-title">إضافة</span><button class="mx" onclick="closeModal()">✕</button></div>
+    <div class="mbd" id="m-body"></div>
+    <div class="mft"><button class="fbtn-c" onclick="closeModal()">إلغاء</button><button class="fbtn-s" id="m-save">حفظ</button></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo3d">INDUSYNC</div>
+  <button class="nl act" onclick="go('hero')">الرئيسية</button>
+  <button class="nl" onclick="go('menu')">الخدمات</button>
+  <button class="nl" onclick="go('dash')">التحكم</button>
+  <button class="nl" onclick="go('inv')">المخزون</button>
+  <button class="nl" onclick="go('proj')">المشاريع</button>
+  <button class="nl" onclick="go('maint')">الصيانة</button>
+  <button class="nl" onclick="go('qual')">الجودة</button>
+  <button class="nl" onclick="go('stats')">الإحصاء</button>
+  <button class="nl" onclick="go('queue')">الطوابير</button>
+  <button class="nl" onclick="go('hf')">العوامل البشرية</button>
+  <button class="nl" onclick="go('lp')">LP</button>
+  <button class="nl" onclick="go('formula')">الصيغ</button>
+  <div class="search-box">
+    <input class="search-in" placeholder="🔍 بحث..." oninput="searchModules(this.value)" onfocus="this.select()" onblur="setTimeout(()=>{const r=document.getElementById('search-res');if(r)r.classList.remove('show')},250)">
+    <div class="search-res" id="search-res"></div>
+  </div>
+  <div class="lang-tog">
+    <button class="lang-opt act" onclick="setLang('ar')">AR</button>
+    <button class="lang-opt" onclick="setLang('en')">EN</button>
+  </div>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<div class="pg act" id="pg-hero">
+  <div class="hero">
+    <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+    <div class="hero-tag">⬢ INDUSTRIAL ENGINEERING PLATFORM • V4.0</div>
+    <div class="hero-title-3d">
+      <h1 class="hero-title">INDU<span class="acc">SYNC</span></h1>
+    </div>
+    <div class="hero-sub">منصة هندسة صناعية ثلاثية الأبعاد</div>
+    <p class="hero-desc">نظام موحد لإدارة عمليات المصنع بتجربة ثلاثية الأبعاد — مخزون، مشاريع، صيانة، جودة، إحصاء تطبيقي، محاكاة طوابير، وعوامل بشرية. كل شيء في بيئة بصرية حية ومتفاعلة.</p>
+    <div class="hero-stats">
+      <div class="hstat"><span class="hstat-n" id="hs1">0</span><span class="hstat-l">عنصر مخزون</span></div>
+      <div class="hstat"><span class="hstat-n" id="hs2">0</span><span class="hstat-l">مشروع نشط</span></div>
+      <div class="hstat"><span class="hstat-n" id="hs3">0%</span><span class="hstat-l">كفاءة الإنتاج</span></div>
+      <div class="hstat"><span class="hstat-n" id="hs4">0</span><span class="hstat-l">وحدة محاكاة</span></div>
+    </div>
+    <div class="hero-cta">
+      <button class="btn-3d" onclick="go('menu')">⬡ استكشف الخدمات</button>
+      <button class="btn-3d btn-ghost" onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'})">↓ اعرف أكثر</button>
+    </div>
+  </div>
+
+  <div class="about" id="about">
+    <div class="about-inner">
+      <div class="about-tag">⬢ ABOUT THE PLATFORM</div>
+      <h2 class="about-t">منصة هندسية بتقنية ثلاثية الأبعاد</h2>
+      <p class="about-d">INDUSYNC 3D تقدم بيئة بصرية ديناميكية لمهندسي الصناعة. تجمع كل الأدوات المعتمدة في الهندسة الصناعية: EOQ, ROP, MTBF, OEE, Cpk, CPM, LP وأكثر — في واجهة عميقة الإحساس، حية، وقابلة للتخصيص.</p>
+      <div class="feat-grid">
+        <div class="feat"><div class="feat-ic">🌐</div><div class="feat-t">ثلاثية الأبعاد</div><div class="feat-d">واجهة ثلاثية الأبعاد بـ Three.js مع تأثيرات Glassmorphism وعمق بصري حقيقي.</div></div>
+        <div class="feat"><div class="feat-ic">⚡</div><div class="feat-t">حسابات موثوقة</div><div class="feat-d">جميع المعادلات الهندسية الكلاسيكية — EOQ, ROP, MTBF, OEE, Cpk, CPI, SPI, LP.</div></div>
+        <div class="feat"><div class="feat-ic">🔒</div><div class="feat-t">بدون اشتراك</div><div class="feat-d">يعمل بالكامل في المتصفح. لا قواعد بيانات، لا تنصيب، حفظ تلقائي في LocalStorage.</div></div>
+        <div class="feat"><div class="feat-ic">👁</div><div class="feat-t">بيانات حية</div><div class="feat-d">مؤشرات KPI تتفاعل لحظياً مع تعديلاتك، مع تنبيهات ذكية وتقارير صحية.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">© INDUSYNC 3D · منصة الهندسة الصناعية · 2026</div>
+</div>
+
+<!-- ═══════════ MENU ═══════════ -->
+<div class="pg" id="pg-menu">
+  <div class="wrap">
+    <button class="back" onclick="go('hero')">← العودة للرئيسية</button>
+    <div class="crumb">⬢ MAIN MENU</div>
+    <h1 class="h1">قائمة الخدمات</h1>
+    <div class="svc-grid" id="svc-grid"></div>
+  </div>
+  <div class="foot">⬢ INDUSYNC 3D ⬢ كل الوحدات</div>
+</div>
+
+<!-- Placeholder pages — will be injected by JS -->
+<div id="pages-container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// INDUSYNC 3D — Main App
+// ═══════════════════════════════════════════════════════════════
+
+// ─────────── THREE.JS BACKGROUND SCENE ───────────
+let scene, camera, renderer, torus, particles, mouseX = 0, mouseY = 0;
+
+function initThree() {
+  const canvas = document.getElementById('bg-canvas');
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x05060d, 0.0015);
+
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.z = 300;
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  // Torus knot (central industrial object)
+  const torusGeo = new THREE.TorusKnotGeometry(60, 18, 200, 32, 2, 3);
+  const torusMat = new THREE.MeshBasicMaterial({
+    color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.35
+  });
+  torus = new THREE.Mesh(torusGeo, torusMat);
+  scene.add(torus);
+
+  // Second wireframe ring (cyan)
+  const ringGeo = new THREE.TorusGeometry(120, 0.5, 16, 100);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.3 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 3;
+  scene.add(ring);
+  window.__ring = ring;
+
+  // Particle field
+  const pGeo = new THREE.BufferGeometry();
+  const pCount = 1200;
+  const pos = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount * 3; i++) pos[i] = (Math.random() - 0.5) * 1400;
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pMat = new THREE.PointsMaterial({
+    color: 0x00f0ff, size: 1.4, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, sizeAttenuation: true
+  });
+  particles = new THREE.Points(pGeo, pMat);
+  scene.add(particles);
+
+  // Floating cubes / dodecahedrons (industrial vibe)
+  const cubes = new THREE.Group();
+  for (let i = 0; i < 8; i++) {
+    const geo = i % 2 === 0 ? new THREE.IcosahedronGeometry(8, 0) : new THREE.OctahedronGeometry(7, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      color: i % 3 === 0 ? 0xff2bd6 : (i % 3 === 1 ? 0x00f0ff : 0x7c3aed),
+      wireframe: true, transparent: true, opacity: 0.5
+    });
+    const m = new THREE.Mesh(geo, mat);
+    const a = (i / 8) * Math.PI * 2;
+    m.position.set(Math.cos(a) * 200, Math.sin(a) * 130, Math.sin(a * 2) * 100);
+    m.userData = { sp: 0.3 + Math.random() * 0.5, ph: Math.random() * Math.PI * 2 };
+    cubes.add(m);
+  }
+  scene.add(cubes);
+  window.__cubes = cubes;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = Date.now() * 0.0003;
+  if (torus) {
+    torus.rotation.x = t * 0.7;
+    torus.rotation.y = t * 0.5;
+  }
+  if (window.__ring) window.__ring.rotation.z = t * 0.8;
+  if (particles) {
+    particles.rotation.y = t * 0.05;
+    particles.rotation.x = t * 0.02;
+  }
+  if (window.__cubes) {
+    window.__cubes.rotation.y = t * 0.3;
+    window.__cubes.children.forEach(c => {
+      c.rotation.x += 0.005 * c.userData.sp;
+      c.rotation.y += 0.008 * c.userData.sp;
+      c.position.y += Math.sin(t * 4 + c.userData.ph) * 0.15;
+    });
+  }
+  camera.position.x += (mouseX * 40 - camera.position.x) * 0.04;
+  camera.position.y += (-mouseY * 30 - camera.position.y) * 0.04;
+  camera.lookAt(0, 0, 0);
+  renderer.render(scene, camera);
+}
+
+// ─────────── LOADER ───────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('gone');
+    setTimeout(() => document.getElementById('loader').remove(), 700);
+  }, 800);
+  initThree();
+  injectAllPages();
+  renderAll();
+  countUpHero();
+  buildServicesMenu();
+});
+
+// ─────────── HELPERS ───────────
+const $ = (id) => document.getElementById(id);
+const gv = (id) => $(id) ? $(id).value : '';
+const toast = (msg) => {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+};
+const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+function countUpHero() {
+  const animateN = (el, target, suffix = '') => {
+    let v = 0, step = target / 50;
+    const t = setInterval(() => {
+      v = Math.min(v + step, target);
+      el.textContent = Math.floor(v) + suffix;
+      if (v >= target) clearInterval(t);
+    }, 25);
+  };
+  setTimeout(() => {
+    animateN($('hs1'), 247);
+    animateN($('hs2'), 6);
+    animateN($('hs3'), 94, '%');
+    animateN($('hs4'), 18);
+  }, 1000);
+}
+
+// ─────────── NAVIGATION ───────────
+function go(id) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('act'));
+  const pg = $('pg-' + id);
+  if (pg) pg.classList.add('act');
+  document.querySelectorAll('nav .nl').forEach(b => {
+    b.classList.toggle('act', b.getAttribute('onclick') === `go('${id}')`);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (id === 'dash') refreshDash();
+  if (id === 'formula') renderFormulaLib();
+  if (id === 'report') renderHealthReport();
+  if (id === 'cases') renderCasesList();
+  if (id === 'scenario') renderScenarios();
+  if (id === 'vsm') renderVSM();
+  if (id === 'lp') initLP();
+  if (id === 'invsim') runInvSim();
+}
+window.go = go;
+
+// ─────────── LANG (simplified) ───────────
+function setLang(l) {
+  document.querySelectorAll('.lang-opt').forEach(b => b.classList.toggle('act', b.textContent === l.toUpperCase()));
+  document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  toast(l === 'ar' ? '✓ العربية' : '✓ English');
+}
+window.setLang = setLang;
+
+// ─────────── DATA ───────────
+let invData = [
+  { id: 1, code: 'MAT-001', name: 'ألومنيوم 6061', qty: 450, unit: 'كجم', min: 100, loc: 'A-1', cost: 45, status: 'ok' },
+  { id: 2, code: 'MAT-002', name: 'فولاذ مقاوم 304', qty: 85, unit: 'كجم', min: 200, loc: 'B-2', cost: 120, status: 'low' },
+  { id: 3, code: 'MAT-003', name: 'بلاستيك PVC', qty: 12, unit: 'لتر', min: 50, loc: 'C-1', cost: 18, status: 'critical' },
+  { id: 4, code: 'MAT-004', name: 'مسامير M8', qty: 2400, unit: 'قطعة', min: 500, loc: 'D-3', cost: 0.5, status: 'ok' },
+  { id: 5, code: 'MAT-005', name: 'زيت تشحيم', qty: 120, unit: 'لتر', min: 80, loc: 'E-1', cost: 25, status: 'ok' },
+];
+let supData = [
+  { id: 1, code: 'SUP-001', name: 'أحمد الزهراني', company: 'الصناعات المتقدمة', spec: 'مواد معدنية', lead: 7, rating: 5, status: 'ok' },
+  { id: 2, code: 'SUP-002', name: 'محمد القحطاني', company: 'البلاستيك الوطنية', spec: 'بلاستيك ومطاط', lead: 14, rating: 4, status: 'ok' },
+  { id: 3, code: 'SUP-003', name: 'خالد العتيبي', company: 'السعودية للتوريدات', spec: 'أدوات ومعدات', lead: 21, rating: 3, status: 'low' },
+];
+let projData = [
+  { id: 1, code: 'PRJ-001', name: 'توسعة خط الإنتاج A', manager: 'م. سعد الدوسري', start: '2025-01-01', end: '2025-06-30', budget: 850000, progress: 65, status: 'progress' },
+  { id: 2, code: 'PRJ-002', name: 'تركيب نظام مراقبة', manager: 'م. فهد العمري', start: '2025-02-15', end: '2025-05-15', budget: 320000, progress: 90, status: 'progress' },
+  { id: 3, code: 'PRJ-003', name: 'مشروع توفير الطاقة', manager: 'م. عبدالله السهلي', start: '2024-11-01', end: '2025-03-01', budget: 200000, progress: 100, status: 'done' },
+  { id: 4, code: 'PRJ-004', name: 'تجديد مستودع المواد', manager: 'م. تركي الشمري', start: '2025-04-01', end: '2025-09-30', budget: 450000, progress: 15, status: 'plan' },
+];
+let woData = [
+  { id: 1, code: 'WO-1042', machine: 'M-07', type: 'وقائية', priority: 'متوسط', tech: 'Tech. Saeed', due: '2025-04-25', status: 'مشغول' },
+  { id: 2, code: 'WO-1043', machine: 'M-12', type: 'تصحيحية', priority: 'متوسط', tech: 'Tech. Faisal', due: '2025-04-28', status: 'قيد التنفيذ' },
+  { id: 3, code: 'WO-1044', machine: 'M-19', type: 'طارئة', priority: 'حرج', tech: 'Tech. Hassan', due: '2025-04-25', status: 'قيد التنفيذ' },
+];
+let nid = { inv: 6, sup: 4, proj: 5, wo: 4 };
+
+// ─────────── LOAD/SAVE ───────────
+function saveAll() {
+  try { localStorage.setItem('indusync3d', JSON.stringify({ invData, supData, projData, woData })); } catch (e) { }
+}
+function loadAll() {
+  try {
+    const r = localStorage.getItem('indusync3d');
+    if (!r) return;
+    const d = JSON.parse(r);
+    if (d.invData) invData = d.invData;
+    if (d.supData) supData = d.supData;
+    if (d.projData) projData = d.projData;
+    if (d.woData) woData = d.woData;
+  } catch (e) { }
+}
+loadAll();
+
+// ─────────── SERVICES MENU ───────────
+const services = [
+  { id: 'dash', ic: '🎛', n: 'لوحة التحكم', d: 'نظرة شاملة على جميع الأقسام ومؤشرات الأداء الرئيسية في مكان واحد.', t: ['KPI', 'Live Charts'] },
+  { id: 'inv', ic: '📦', n: 'إدارة المخزون', d: 'إدارة كاملة للمواد والموردين مع حاسبات EOQ و ROP و ABC.', t: ['EOQ', 'ROP', 'ABC'] },
+  { id: 'proj', ic: '🏗', n: 'إدارة المشاريع', d: 'متابعة المشاريع بمخطط جانت وحسابات إدارة القيمة المكتسبة.', t: ['Gantt', 'CPI', 'SPI'] },
+  { id: 'maint', ic: '🔧', n: 'الموثوقية والصيانة', d: 'أوامر العمل وسجل الصيانة مع حسابات MTBF و OEE.', t: ['MTBF', 'OEE'] },
+  { id: 'qual', ic: '🎯', n: 'إدارة الجودة', d: 'مؤشرات الجودة وحاسبات Cpk و DPMO وتحليل الستة سيجما.', t: ['Cpk', 'DPMO', '6σ'] },
+  { id: 'stats', ic: 'Σ', n: 'الإحصاء التطبيقي', d: 'وصفي، توزيعات، اختبار فرضيات، انحدار، تنبؤ.', t: ['Normal', 'Z-Test', 'Reg'], new: true },
+  { id: 'queue', ic: '🚦', n: 'محاكاة الطوابير', d: 'نماذج M/M/1 و M/M/c ومحاكاة مونت كارلو للأحداث المنفصلة.', t: ['M/M/1', 'M/M/c', 'MC'], new: true },
+  { id: 'hf', ic: '👷', n: 'العوامل البشرية', d: 'NIOSH للرفع، NASA-TLX، RULA، الإجهاد الحراري، الوقت القياسي.', t: ['NIOSH', 'TLX', 'RULA'], new: true },
+  { id: 'lp', ic: '📐', n: 'البرمجة الخطية', d: 'حل LP بطريقة Corner Point مع رسم منطقة الحلول الممكنة.', t: ['Simplex', 'LP'], new: true },
+  { id: 'invsim', ic: '📈', n: 'محاكاة المخزون', d: 'محاكاة ديناميكية للمخزون عبر الزمن مع رسم بياني حي.', t: ['Sim', 'EOQ'], new: true },
+  { id: 'scenario', ic: '🔀', n: 'مقارنة السيناريوهات', d: 'قارن سيناريوهات إنتاج متعددة بمؤشرات EOQ و OEE.', t: ['What-If'] },
+  { id: 'formula', ic: '📚', n: 'مكتبة الصيغ', d: '22+ صيغة هندسية معتمدة بترتيب التخصص.', t: ['22+ Formulas'] },
+  { id: 'cases', ic: '🎓', n: 'الحالات الدراسية', d: '6 حالات تفاعلية للتدرب على حل مسائل الهندسة الصناعية.', t: ['Learn'] },
+  { id: 'vsm', ic: '🗺', n: 'خريطة تدفق القيمة', d: 'ارسم وحلل VSM لخطوط الإنتاج مع حساب PCE.', t: ['VSM', 'Lean'] },
+  { id: 'report', ic: '📋', n: 'تقرير الصحة الإنتاجية', d: 'تقرير ذكي عن صحة المنشأة مع توصيات.', t: ['Health'] },
+];
+
+function buildServicesMenu() {
+  const grid = $('svc-grid');
+  if (!grid) return;
+  grid.innerHTML = services.map(s => `
+    <div class="svc ${s.new ? 'new' : ''}" onclick="go('${s.id}')">
+      ${s.new ? '<span class="svc-new-pin">NEW</span>' : ''}
+      <div class="svc-ic">${s.ic}</div>
+      <div class="svc-name">${s.n}</div>
+      <div class="svc-desc">${s.d}</div>
+      <div class="svc-tags">${s.t.map(t => `<span class="svc-tag">${t}</span>`).join('')}</div>
+      <div class="svc-go">فتح ⬡ →</div>
+    </div>
+  `).join('');
+}
+
+// ─────────── SEARCH ───────────
+function searchModules(q) {
+  const res = $('search-res');
+  if (!res) return;
+  q = q.trim();
+  if (!q) { res.classList.remove('show'); return; }
+  const hits = services.filter(s => s.n.indexOf(q) !== -1 || s.d.indexOf(q) !== -1).slice(0, 6);
+  if (hits.length === 0) {
+    res.innerHTML = '<div class="sr-item">لا نتائج</div>';
+  } else {
+    res.innerHTML = hits.map(h => `<div class="sr-item" onmousedown="go('${h.id}')">${h.ic} ${h.n}</div>`).join('');
+  }
+  res.classList.add('show');
+}
+window.searchModules = searchModules;
+
+// ─────────── PAGE INJECTION ───────────
+function injectAllPages() {
+  const c = $('pages-container');
+  c.innerHTML = `
+${pgDashboard()}
+${pgInventory()}
+${pgProjects()}
+${pgMaintenance()}
+${pgQuality()}
+${pgStats()}
+${pgQueue()}
+${pgHF()}
+${pgLP()}
+${pgInvSim()}
+${pgScenario()}
+${pgFormula()}
+${pgCases()}
+${pgVSM()}
+${pgReport()}
+  `;
+}
+
+function pgDashboard() {
+  return `
+<div class="pg" id="pg-dash">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ CONTROL CENTER</div>
+    <h1 class="h1">لوحة التحكم المركزية</h1>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">✅</span><span class="kpi-val gr">98.4%</span><div class="kpi-lbl">معدل جودة المنتج</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">⚠️</span><span class="kpi-val ye" id="dk-alerts">0</span><div class="kpi-lbl">تنبيهات المخزون</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">🔧</span><span class="kpi-val" id="dk-proj">0</span><div class="kpi-lbl">مشاريع نشطة</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">📦</span><span class="kpi-val or" id="dk-inv">0</span><div class="kpi-lbl">عناصر المخزون</div></div>
+    </div>
+    <div class="col2">
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">⬡ التنبيهات الحية</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--rd)">● LIVE</span></div>
+        <div class="alerts">
+          <div class="al-item"><div class="al-dot" style="background:var(--ye);color:var(--ye)"></div><span class="al-tag b lo">تحذير</span><span class="al-txt">Item LM-2042 below ROP</span><span class="al-time">2d ago</span></div>
+          <div class="al-item"><div class="al-dot" style="background:var(--rd);color:var(--rd)"></div><span class="al-tag b cr">حرج</span><span class="al-txt">Machine M-07 maintenance overdue</span><span class="al-time">5h ago</span></div>
+          <div class="al-item"><div class="al-dot" style="background:var(--gr);color:var(--gr)"></div><span class="al-tag b ok">مكتمل</span><span class="al-txt">Batch P-2042 in spec (Cpk 1.43)</span><span class="al-time">1h ago</span></div>
+          <div class="al-item"><div class="al-dot" style="background:var(--neon);color:var(--neon)"></div><span class="al-tag b pl">معلومة</span><span class="al-txt">Project PR-09 milestone reached</span><span class="al-time">30m ago</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">⬡ إنتاج الأسبوع</span></div>
+        <div class="bars" id="d-bars"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">⬡ تقدم العمليات</span></div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        ${[['تقدم الدفعة', 62], ['استغلال الطاقة', 87], ['معدل الجودة', 94], ['كفاءة العمالة', 78]].map(([l, v]) => `
+          <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:11.5px"><span style="color:var(--tx2)">${l}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--neon)">${v}%</span></div><div class="pbar"><div class="pfill" style="width:${v}%"></div></div></div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ INDUSYNC 3D ⬢ CONTROL CENTER</div>
+</div>`;
+}
+
+function pgInventory() {
+  return `
+<div class="pg" id="pg-inv">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ INVENTORY</div>
+    <h1 class="h1">إدارة المخزون</h1>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">📦</span><span class="kpi-val" id="ik-total">0</span><div class="kpi-lbl">إجمالي العناصر</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">⚠️</span><span class="kpi-val ye" id="ik-low">0</span><div class="kpi-lbl">مخزون منخفض</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">🔴</span><span class="kpi-val rd" id="ik-crit">0</span><div class="kpi-lbl">مخزون حرج</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">🏪</span><span class="kpi-val gr" id="ik-sup">0</span><div class="kpi-lbl">الموردين</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab act" onclick="invTab('items')">بنود المخزون</button>
+      <button class="tab" onclick="invTab('calc')">الحاسبات</button>
+      <button class="tab" onclick="invTab('sup')">الموردين</button>
+    </div>
+    <div class="tp act" id="itp-items">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ بنود المخزون</span><div class="panel-acts"><button class="ibtn ibtn-g" onclick="openInvModal()">+ إضافة</button></div></div>
+        <div class="tw"><table class="dt"><thead><tr><th>الرمز</th><th>المادة</th><th>الكمية</th><th>الوحدة</th><th>الحد الأدنى</th><th>الموقع</th><th>التكلفة</th><th>الحالة</th><th></th></tr></thead><tbody id="inv-body"></tbody></table></div>
+      </div>
+    </div>
+    <div class="tp" id="itp-calc">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ حاسبات المخزون</span></div>
+        <div class="cg c3">
+          <div class="cc"><div class="cc-t">// EOQ — الكمية الاقتصادية</div><div class="cr"><span class="cl">الطلب D</span><input class="ci" id="eoq-d" value="5000" type="number"></div><div class="cr"><span class="cl">تكلفة الطلب S</span><input class="ci" id="eoq-s" value="50" type="number"></div><div class="cr"><span class="cl">تكلفة الاحتفاظ H</span><input class="ci" id="eoq-h" value="2" type="number"></div><div class="cres" id="eoq-r">EOQ = ---</div><button class="cbtn" onclick="calcEOQ()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// ROP — نقطة إعادة الطلب</div><div class="cr"><span class="cl">الطلب اليومي d</span><input class="ci" id="rop-d" value="25" type="number"></div><div class="cr"><span class="cl">مهلة التوريد L</span><input class="ci" id="rop-l" value="7" type="number"></div><div class="cr"><span class="cl">مخزون الأمان SS</span><input class="ci" id="rop-s" value="50" type="number"></div><div class="cres" id="rop-r">ROP = ---</div><button class="cbtn" onclick="calcROP()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// Safety Stock</div><div class="cr"><span class="cl">الطلب الأقصى</span><input class="ci" id="ss-dm" value="40" type="number"></div><div class="cr"><span class="cl">الطلب المتوسط</span><input class="ci" id="ss-da" value="25" type="number"></div><div class="cr"><span class="cl">مهلة التوريد</span><input class="ci" id="ss-lt" value="7" type="number"></div><div class="cres" id="ss-r">SS = ---</div><button class="cbtn" onclick="calcSS()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// معدل الدوران ITR</div><div class="cr"><span class="cl">تكلفة البضاعة</span><input class="ci" id="ito-c" value="500000" type="number"></div><div class="cr"><span class="cl">متوسط المخزون</span><input class="ci" id="ito-a" value="100000" type="number"></div><div class="cres" id="ito-r">---</div><button class="cbtn" onclick="calcITO()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// ABC Analysis</div><div class="cr"><span class="cl">عناصر A</span><input class="ci" id="abc-a" value="10" type="number"></div><div class="cr"><span class="cl">عناصر B</span><input class="ci" id="abc-b" value="30" type="number"></div><div class="cr"><span class="cl">عناصر C</span><input class="ci" id="abc-c" value="60" type="number"></div><div class="cres" id="abc-r">---</div><button class="cbtn" onclick="calcABC()">// تحليل</button></div>
+          <div class="cc"><div class="cc-t">// Holding Cost</div><div class="cr"><span class="cl">متوسط المخزون</span><input class="ci" id="hc-i" value="200000" type="number"></div><div class="cr"><span class="cl">معدل الاحتفاظ %</span><input class="ci" id="hc-r2" value="20" type="number"></div><div class="cres" id="hc-r">---</div><button class="cbtn" onclick="calcHC()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="itp-sup">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ الموردين</span><div class="panel-acts"><button class="ibtn ibtn-g" onclick="openSupModal()">+ إضافة مورد</button></div></div>
+        <div class="tw"><table class="dt"><thead><tr><th>الرمز</th><th>المورد</th><th>الشركة</th><th>التخصص</th><th>مهلة</th><th>التقييم</th><th>الحالة</th><th></th></tr></thead><tbody id="sup-body"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ INVENTORY MODULE</div>
+</div>`;
+}
+
+function pgProjects() {
+  return `
+<div class="pg" id="pg-proj">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ PROJECTS</div>
+    <h1 class="h1">إدارة المشاريع</h1>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">🏗</span><span class="kpi-val" id="pjk-total">0</span><div class="kpi-lbl">إجمالي المشاريع</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">⚙️</span><span class="kpi-val or" id="pjk-act">0</span><div class="kpi-lbl">قيد التنفيذ</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">✅</span><span class="kpi-val gr" id="pjk-done">0</span><div class="kpi-lbl">مكتمل</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">📋</span><span class="kpi-val ye" id="pjk-plan">0</span><div class="kpi-lbl">مخطط</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab act" onclick="projTab('list')">قائمة المشاريع</button>
+      <button class="tab" onclick="projTab('gantt')">مخطط جانت</button>
+      <button class="tab" onclick="projTab('calc')">الحاسبات</button>
+      <button class="tab" onclick="projTab('cpm')">CPM/PERT</button>
+    </div>
+    <div class="tp act" id="pjtp-list">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ المشاريع</span><div class="panel-acts"><button class="ibtn ibtn-g" onclick="openProjModal()">+ مشروع جديد</button></div></div>
+        <div class="tw"><table class="dt"><thead><tr><th>الرمز</th><th>الاسم</th><th>المسؤول</th><th>البدء</th><th>الانتهاء</th><th>الميزانية</th><th>التقدم</th><th>الحالة</th><th></th></tr></thead><tbody id="proj-body"></tbody></table></div>
+      </div>
+    </div>
+    <div class="tp" id="pjtp-gantt">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ مخطط جانت</span></div><div class="gantt" id="gantt-chart"></div></div>
+    </div>
+    <div class="tp" id="pjtp-calc">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ حاسبات المشاريع</span></div>
+        <div class="cg c3">
+          <div class="cc"><div class="cc-t">// CPI</div><div class="cr"><span class="cl">القيمة المكتسبة EV</span><input class="ci" id="cpi-ev" value="75000" type="number"></div><div class="cr"><span class="cl">التكلفة الفعلية AC</span><input class="ci" id="cpi-ac" value="80000" type="number"></div><div class="cres" id="cpi-r">CPI = ---</div><button class="cbtn" onclick="calcCPI()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// SPI</div><div class="cr"><span class="cl">EV</span><input class="ci" id="spi-ev" value="75000" type="number"></div><div class="cr"><span class="cl">PV</span><input class="ci" id="spi-pv" value="70000" type="number"></div><div class="cres" id="spi-r">SPI = ---</div><button class="cbtn" onclick="calcSPI()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// EAC</div><div class="cr"><span class="cl">BAC</span><input class="ci" id="eac-b" value="200000" type="number"></div><div class="cr"><span class="cl">CPI</span><input class="ci" id="eac-c" value="0.94" type="number" step="0.01"></div><div class="cres" id="eac-r">EAC = ---</div><button class="cbtn" onclick="calcEAC()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="pjtp-cpm">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ المسار الحرج CPM</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// الأنشطة (رمز:مدة:سابق)</div><div class="fg"><label class="fl">مثال: A:5: B:8:A C:12:B D:6:B E:4:C F:3:D,E</label><input class="fi" id="cpm-input" value="A:5: B:8:A C:12:B D:6:B E:4:C F:3:D,E"></div><button class="cbtn" onclick="calcCPM()">// احسب المسار الحرج</button></div>
+        <div class="cc"><div class="cc-t">// النتائج</div><div class="sim-out" id="cpm-r">أدخل الأنشطة واضغط احسب</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ PROJECTS MODULE</div>
+</div>`;
+}
+
+function pgMaintenance() {
+  return `
+<div class="pg" id="pg-maint">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ RELIABILITY</div>
+    <h1 class="h1">الموثوقية والصيانة</h1>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">⚡</span><span class="kpi-val ye">82.4%</span><div class="kpi-lbl">% OEE</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">⏱</span><span class="kpi-val">3.8</span><div class="kpi-lbl">ساعة MTTR</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">📅</span><span class="kpi-val gr">142.5</span><div class="kpi-lbl">ساعة MTBF</div></div>
+      <div class="kpi"><div class="kpi-live"><span class="d"></span>LIVE</div><span class="kpi-ic">🔧</span><span class="kpi-val or" id="wo-open">0</span><div class="kpi-lbl">أوامر مفتوحة</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab act" onclick="maintTab('wo')">أوامر العمل</button>
+      <button class="tab" onclick="maintTab('calc')">الحاسبات</button>
+    </div>
+    <div class="tp act" id="mtp-wo">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ أوامر العمل</span><div class="panel-acts"><button class="ibtn ibtn-g" onclick="openWOModal()">+ إضافة</button></div></div>
+        <div class="tw"><table class="dt"><thead><tr><th>الرمز</th><th>الآلة</th><th>النوع</th><th>الأولوية</th><th>الفني</th><th>الاستحقاق</th><th>الحالة</th><th></th></tr></thead><tbody id="wo-body"></tbody></table></div>
+      </div>
+    </div>
+    <div class="tp" id="mtp-calc">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ حاسبات الموثوقية</span></div>
+        <div class="cg c3">
+          <div class="cc"><div class="cc-t">// MTBF</div><div class="cr"><span class="cl">وقت التشغيل T</span><input class="ci" id="mtbf-t" value="1000" type="number"></div><div class="cr"><span class="cl">عدد الأعطال N</span><input class="ci" id="mtbf-f" value="3" type="number"></div><div class="cres" id="mtbf-r">MTBF = ---</div><button class="cbtn" onclick="calcMTBF()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// Availability</div><div class="cr"><span class="cl">MTBF</span><input class="ci" id="av-m" value="333" type="number"></div><div class="cr"><span class="cl">MTTR</span><input class="ci" id="av-t" value="4" type="number"></div><div class="cres" id="av-r">---</div><button class="cbtn" onclick="calcAV()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// OEE</div><div class="cr"><span class="cl">التوافر %</span><input class="ci" id="oee-a" value="90" type="number"></div><div class="cr"><span class="cl">الأداء %</span><input class="ci" id="oee-p" value="85" type="number"></div><div class="cr"><span class="cl">الجودة %</span><input class="ci" id="oee-q" value="98" type="number"></div><div class="cres" id="oee-r">OEE = ---</div><button class="cbtn" onclick="calcOEE()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ MAINTENANCE MODULE</div>
+</div>`;
+}
+
+function pgQuality() {
+  return `
+<div class="pg" id="pg-qual">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ QUALITY</div>
+    <h1 class="h1">إدارة الجودة</h1>
+    <div class="kpi-row">
+      <div class="kpi"><span class="kpi-ic">🎯</span><span class="kpi-val">2.3σ</span><div class="kpi-lbl">مستوى سيجما</div></div>
+      <div class="kpi"><span class="kpi-ic">📉</span><span class="kpi-val gr">1.2%</span><div class="kpi-lbl">نسبة العيوب</div></div>
+      <div class="kpi"><span class="kpi-ic">⏱</span><span class="kpi-val">4.7 د</span><div class="kpi-lbl">زمن الدورة</div></div>
+      <div class="kpi"><span class="kpi-ic">♻️</span><span class="kpi-val ye">0.8%</span><div class="kpi-lbl">نسبة الهدر</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><span class="panel-title">⬡ حاسبات الجودة</span></div>
+      <div class="cg c3">
+        <div class="cc"><div class="cc-t">// Cpk</div><div class="cr"><span class="cl">الحد الأعلى USL</span><input class="ci" id="cpk-u" value="55" type="number"></div><div class="cr"><span class="cl">الحد الأدنى LSL</span><input class="ci" id="cpk-l" value="45" type="number"></div><div class="cr"><span class="cl">المتوسط μ</span><input class="ci" id="cpk-m" value="51" type="number"></div><div class="cr"><span class="cl">الانحراف σ</span><input class="ci" id="cpk-s" value="1.2" type="number" step="0.1"></div><div class="cres" id="cpk-r">Cpk = ---</div><button class="cbtn" onclick="calcCpk()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// DPMO</div><div class="cr"><span class="cl">عدد العيوب</span><input class="ci" id="dpmo-d" value="15" type="number"></div><div class="cr"><span class="cl">عدد الوحدات</span><input class="ci" id="dpmo-u" value="1000" type="number"></div><div class="cr"><span class="cl">فرص/وحدة</span><input class="ci" id="dpmo-o" value="5" type="number"></div><div class="cres" id="dpmo-r">DPMO = ---</div><button class="cbtn" onclick="calcDPMO()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// Takt & Cycle Time</div><div class="cr"><span class="cl">وقت الإنتاج (د)</span><input class="ci" id="ct-t" value="480" type="number"></div><div class="cr"><span class="cl">الكمية المنتجة</span><input class="ci" id="ct-q" value="120" type="number"></div><div class="cr"><span class="cl">الطلب اليومي</span><input class="ci" id="ct-d" value="100" type="number"></div><div class="cres" id="ct-r">---</div><button class="cbtn" onclick="calcCT()">// احسب</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ QUALITY MODULE</div>
+</div>`;
+}
+
+
+function pgStats() {
+  return `
+<div class="pg" id="pg-stats">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ APPLIED STATISTICS</div>
+    <h1 class="h1">الإحصاء التطبيقي</h1>
+    <div class="tabs">
+      <button class="tab act" onclick="statsTab('desc')">وصفي</button>
+      <button class="tab" onclick="statsTab('dist')">التوزيعات</button>
+      <button class="tab" onclick="statsTab('hyp')">اختبار الفرضيات</button>
+      <button class="tab" onclick="statsTab('reg')">الانحدار</button>
+      <button class="tab" onclick="statsTab('forecast')">التنبؤ</button>
+    </div>
+    <div class="tp act" id="stp-desc">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ الإحصاء الوصفي</span></div>
+        <div class="cg c2">
+          <div class="cc"><div class="cc-t">// مقاييس النزعة والتشتت</div><div class="fg"><label class="fl">البيانات (مفصولة بفاصلة)</label><input class="fi" id="stat-data" value="23,45,67,34,56,78,12,89,45,67"></div><button class="cbtn" onclick="calcDesc()">// احسب</button><div class="sim-out" id="desc-out" style="display:none;margin-top:10px"></div></div>
+          <div class="cc"><div class="cc-t">// SPC لضبط العمليات</div><div class="cr"><span class="cl">UCL</span><input class="ci" id="spc-ucl" value="55" type="number"></div><div class="cr"><span class="cl">LCL</span><input class="ci" id="spc-lcl" value="45" type="number"></div><div class="cr"><span class="cl">CL</span><input class="ci" id="spc-cl" value="50" type="number"></div><div class="cr"><span class="cl">x الحالية</span><input class="ci" id="spc-x" value="52" type="number"></div><div class="cres" id="spc-r">---</div><button class="cbtn" onclick="calcSPC()">// تحقق</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="stp-dist">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ توزيعات الاحتمال</span></div>
+        <div class="cg c3">
+          <div class="cc"><div class="cc-t">// Normal</div><div class="cr"><span class="cl">μ</span><input class="ci" id="nd-mu" value="50" type="number"></div><div class="cr"><span class="cl">σ</span><input class="ci" id="nd-sig" value="10" type="number"></div><div class="cr"><span class="cl">x</span><input class="ci" id="nd-x" value="60" type="number"></div><div class="cres" id="nd-r">P(X≤x) = ---</div><button class="cbtn" onclick="calcNormal()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// Poisson</div><div class="cr"><span class="cl">λ</span><input class="ci" id="po-lam" value="3" type="number" step="0.1"></div><div class="cr"><span class="cl">k</span><input class="ci" id="po-k" value="2" type="number"></div><div class="cres" id="po-r">P(X=k) = ---</div><button class="cbtn" onclick="calcPoisson()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// Exponential</div><div class="cr"><span class="cl">λ</span><input class="ci" id="ex-lam" value="0.5" type="number" step="0.01"></div><div class="cr"><span class="cl">t</span><input class="ci" id="ex-t" value="2" type="number" step="0.1"></div><div class="cres" id="ex-r">P(T≤t) = ---</div><button class="cbtn" onclick="calcExp()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="stp-hyp">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ اختبار الفرضيات</span></div>
+        <div class="cg c2">
+          <div class="cc"><div class="cc-t">// Z-Test</div><div class="cr"><span class="cl">x̄</span><input class="ci" id="zt-xbar" value="52" type="number"></div><div class="cr"><span class="cl">μ₀</span><input class="ci" id="zt-mu" value="50" type="number"></div><div class="cr"><span class="cl">σ</span><input class="ci" id="zt-sig" value="10" type="number"></div><div class="cr"><span class="cl">n</span><input class="ci" id="zt-n" value="30" type="number"></div><div class="cr"><span class="cl">α</span><input class="ci" id="zt-a" value="0.05" type="number" step="0.01"></div><div class="cres" id="zt-r">Z = ---</div><button class="cbtn" onclick="calcZTest()">// اختبر</button></div>
+          <div class="cc"><div class="cc-t">// Confidence Interval</div><div class="cr"><span class="cl">x̄</span><input class="ci" id="ci-xbar" value="52" type="number"></div><div class="cr"><span class="cl">σ</span><input class="ci" id="ci-sig" value="10" type="number"></div><div class="cr"><span class="cl">n</span><input class="ci" id="ci-n" value="30" type="number"></div><div class="cr"><span class="cl">مستوى الثقة %</span><input class="ci" id="ci-conf" value="95" type="number"></div><div class="cres" id="ci-r">CI = ---</div><button class="cbtn" onclick="calcCI()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="stp-reg">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ الانحدار الخطي</span></div>
+        <div style="padding:18px"><div class="cc"><div class="cc-t">// Simple Linear Regression</div><div class="fg"><label class="fl">قيم X</label><input class="fi" id="reg-x" value="1,2,3,4,5,6,7,8"></div><div class="fg"><label class="fl">قيم Y</label><input class="fi" id="reg-y" value="2.1,4.0,5.9,8.2,10.1,11.8,14.0,15.9"></div><button class="cbtn" style="max-width:220px" onclick="calcRegression()">// احسب</button><div class="sim-out" id="reg-out" style="display:none;margin-top:10px"></div></div></div>
+      </div>
+    </div>
+    <div class="tp" id="stp-forecast">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ التنبؤ</span></div>
+        <div class="cg c2">
+          <div class="cc"><div class="cc-t">// المتوسط المتحرك MA</div><div class="fg"><label class="fl">البيانات</label><input class="fi" id="ma-data" value="120,135,148,142,160,175,168,185,195,210"></div><div class="cr"><span class="cl">فترة n</span><input class="ci" id="ma-n" value="3" type="number" min="2"></div><button class="cbtn" onclick="calcMA()">// احسب</button><div class="sim-out" id="ma-out" style="display:none;margin-top:10px"></div></div>
+          <div class="cc"><div class="cc-t">// التمهيد الأسي</div><div class="fg"><label class="fl">البيانات</label><input class="fi" id="es-data" value="120,135,148,142,160,175,168,185"></div><div class="cr"><span class="cl">α</span><input class="ci" id="es-alpha" value="0.3" type="number" step="0.05"></div><button class="cbtn" onclick="calcExpSmooth()">// احسب</button><div class="sim-out" id="es-out" style="display:none;margin-top:10px"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ APPLIED STATISTICS</div>
+</div>`;
+}
+
+function pgQueue() {
+  return `
+<div class="pg" id="pg-queue">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ QUEUING SIMULATION</div>
+    <h1 class="h1">محاكاة الطوابير</h1>
+    <div class="kpi-row">
+      <div class="kpi"><span class="kpi-ic">🚦</span><span class="kpi-val" id="qk-lq">—</span><div class="kpi-lbl">Lq</div></div>
+      <div class="kpi"><span class="kpi-ic">⏱</span><span class="kpi-val or" id="qk-wq">—</span><div class="kpi-lbl">Wq</div></div>
+      <div class="kpi"><span class="kpi-ic">👥</span><span class="kpi-val gr" id="qk-l">—</span><div class="kpi-lbl">L</div></div>
+      <div class="kpi"><span class="kpi-ic">📊</span><span class="kpi-val ye" id="qk-rho">—</span><div class="kpi-lbl">ρ</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab act" onclick="queueTab('mm1')">M/M/1</button>
+      <button class="tab" onclick="queueTab('mmc')">M/M/c</button>
+      <button class="tab" onclick="queueTab('sim')">مونت كارلو</button>
+    </div>
+    <div class="tp act" id="qtp-mm1">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ M/M/1</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// المعاملات</div><div class="cr"><span class="cl">λ (عميل/ساعة)</span><input class="ci" id="mm1-lam" value="10" type="number" step="0.1"></div><div class="cr"><span class="cl">μ (عميل/ساعة)</span><input class="ci" id="mm1-mu" value="15" type="number" step="0.1"></div><button class="cbtn" onclick="calcMM1()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// النتائج</div><div class="sim-out" id="mm1-out">أدخل المعاملات</div></div></div>
+      </div>
+    </div>
+    <div class="tp" id="qtp-mmc">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ M/M/c</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// المعاملات</div><div class="cr"><span class="cl">λ</span><input class="ci" id="mmc-lam" value="20" type="number" step="0.1"></div><div class="cr"><span class="cl">μ</span><input class="ci" id="mmc-mu" value="12" type="number" step="0.1"></div><div class="cr"><span class="cl">c</span><input class="ci" id="mmc-c" value="3" type="number" min="1"></div><button class="cbtn" onclick="calcMMC()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// النتائج</div><div class="sim-out" id="mmc-out">أدخل المعاملات</div></div></div>
+      </div>
+    </div>
+    <div class="tp" id="qtp-sim">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ محاكاة مونت كارلو</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// الإعداد</div><div class="cr"><span class="cl">عدد العملاء</span><input class="ci" id="sim-n" value="200" type="number"></div><div class="cr"><span class="cl">متوسط الوصول</span><input class="ci" id="sim-arr" value="6" type="number" step="0.1"></div><div class="cr"><span class="cl">متوسط الخدمة</span><input class="ci" id="sim-svc" value="5" type="number" step="0.1"></div><div class="cr"><span class="cl">عدد الخوادم</span><input class="ci" id="sim-srv" value="1" type="number" min="1"></div><button class="cbtn" onclick="runSim()">▶ ابدأ</button></div>
+        <div class="cc"><div class="cc-t">// النتائج</div><div class="sim-out" id="sim-out">اضغط ابدأ</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ QUEUING</div>
+</div>`;
+}
+
+function pgHF() {
+  return `
+<div class="pg" id="pg-hf">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ HUMAN FACTORS</div>
+    <h1 class="h1">هندسة العوامل البشرية</h1>
+    <div class="tabs">
+      <button class="tab act" onclick="hfTab('niosh')">NIOSH</button>
+      <button class="tab" onclick="hfTab('tlx')">NASA-TLX</button>
+      <button class="tab" onclick="hfTab('fatigue')">التعب والإجهاد</button>
+      <button class="tab" onclick="hfTab('rula')">RULA</button>
+    </div>
+    <div class="tp act" id="hftp-niosh">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ NIOSH Lifting Equation</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// معامل الرفع</div>
+          <div class="cr"><span class="cl">وزن الحمل (كجم)</span><input class="ci" id="ni-wt" value="15" type="number" step="0.5"></div>
+          <div class="cr"><span class="cl">H (سم)</span><input class="ci" id="ni-h" value="30" type="number"></div>
+          <div class="cr"><span class="cl">V (سم)</span><input class="ci" id="ni-v" value="75" type="number"></div>
+          <div class="cr"><span class="cl">D (سم)</span><input class="ci" id="ni-d" value="50" type="number"></div>
+          <div class="cr"><span class="cl">A (°)</span><input class="ci" id="ni-a" value="0" type="number"></div>
+          <div class="cr"><span class="cl">F (رفعة/د)</span><input class="ci" id="ni-f" value="2" type="number" step="0.1"></div>
+          <div class="cr"><span class="cl">الإمساك</span><select class="ci" id="ni-c"><option value="1">جيد</option><option value="0.95">مقبول</option><option value="0.9">رديء</option></select></div>
+          <button class="cbtn" onclick="calcNIOSH()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// النتائج</div><div class="sim-out" id="ni-out">أدخل البيانات</div></div></div>
+      </div>
+    </div>
+    <div class="tp" id="hftp-tlx">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ NASA-TLX</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// التقييم (0-100)</div>
+          <div class="cr"><span class="cl">ذهني</span><input class="ci" id="tlx-md" value="70" type="number"></div>
+          <div class="cr"><span class="cl">جسدي</span><input class="ci" id="tlx-pd" value="50" type="number"></div>
+          <div class="cr"><span class="cl">زمني</span><input class="ci" id="tlx-td" value="60" type="number"></div>
+          <div class="cr"><span class="cl">أداء</span><input class="ci" id="tlx-op" value="40" type="number"></div>
+          <div class="cr"><span class="cl">جهد</span><input class="ci" id="tlx-ef" value="65" type="number"></div>
+          <div class="cr"><span class="cl">إحباط</span><input class="ci" id="tlx-fr" value="30" type="number"></div>
+          <button class="cbtn" onclick="calcTLX()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// النتيجة</div><div class="sim-out" id="tlx-out">أدخل التقييمات</div></div></div>
+      </div>
+    </div>
+    <div class="tp" id="hftp-fatigue">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ الإجهاد والوقت القياسي</span></div>
+        <div class="cg c3">
+          <div class="cc"><div class="cc-t">// WBGT</div><div class="cr"><span class="cl">جافة (°C)</span><input class="ci" id="wbgt-db" value="35" type="number"></div><div class="cr"><span class="cl">رطبة (°C)</span><input class="ci" id="wbgt-wb" value="28" type="number"></div><div class="cr"><span class="cl">كرة (°C)</span><input class="ci" id="wbgt-gt" value="40" type="number"></div><div class="cres" id="wbgt-r">WBGT = ---</div><button class="cbtn" onclick="calcWBGT()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// الوقت القياسي</div><div class="cr"><span class="cl">المراقبة (د)</span><input class="ci" id="nt-obs" value="120" type="number"></div><div class="cr"><span class="cl">الدورات</span><input class="ci" id="nt-cyc" value="30" type="number"></div><div class="cr"><span class="cl">الأداء %</span><input class="ci" id="nt-rf" value="110" type="number"></div><div class="cr"><span class="cl">بدل التعب %</span><input class="ci" id="nt-al" value="15" type="number"></div><div class="cres" id="nt-r">---</div><button class="cbtn" onclick="calcNT()">// احسب</button></div>
+          <div class="cc"><div class="cc-t">// وقت الراحة</div><div class="cr"><span class="cl">العمل (د)</span><input class="ci" id="fat-wt" value="60" type="number"></div><div class="cr"><span class="cl">الحرارة (°C)</span><input class="ci" id="fat-temp" value="28" type="number"></div><div class="cr"><span class="cl">جسدي %</span><input class="ci" id="fat-phy" value="50" type="number"></div><div class="cr"><span class="cl">ذهني %</span><input class="ci" id="fat-men" value="40" type="number"></div><div class="cres" id="fat-r">الراحة = ---</div><button class="cbtn" onclick="calcFatigue()">// احسب</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tp" id="hftp-rula">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ RULA</span></div>
+        <div class="cg c2"><div class="cc"><div class="cc-t">// التقييم</div>
+          <div class="cr"><span class="cl">الذراع العلوية</span><select class="ci" id="rula-ua"><option value="1">20° (1)</option><option value="2">20-45° (2)</option><option value="3">45-90° (3)</option><option value="4">+90° (4)</option></select></div>
+          <div class="cr"><span class="cl">الذراع السفلية</span><select class="ci" id="rula-la"><option value="1">60-100° (1)</option><option value="2">خارج (2)</option></select></div>
+          <div class="cr"><span class="cl">المعصم</span><select class="ci" id="rula-wr"><option value="1">محايد (1)</option><option value="2">انحناء خفيف (2)</option><option value="3">انحناء شديد (3)</option></select></div>
+          <div class="cr"><span class="cl">العضلات</span><select class="ci" id="rula-mu"><option value="0">متقطع (0)</option><option value="1">ثابت (1)</option></select></div>
+          <button class="cbtn" onclick="calcRULA()">// احسب</button></div>
+        <div class="cc"><div class="cc-t">// النتيجة</div><div class="sim-out" id="rula-out">أدخل التقييم</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ HUMAN FACTORS</div>
+</div>`;
+}
+
+function pgLP() {
+  return `
+<div class="pg" id="pg-lp">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ LINEAR PROGRAMMING</div>
+    <h1 class="h1">البرمجة الخطية</h1>
+    <div class="kpi-row">
+      <div class="kpi"><span class="kpi-ic">🎯</span><span class="kpi-val or" id="lp-obj">—</span><div class="kpi-lbl">Z المثلى</div></div>
+      <div class="kpi"><span class="kpi-ic">📊</span><span class="kpi-val gr" id="lp-x1">—</span><div class="kpi-lbl">X₁</div></div>
+      <div class="kpi"><span class="kpi-ic">📊</span><span class="kpi-val" id="lp-x2">—</span><div class="kpi-lbl">X₂</div></div>
+      <div class="kpi"><span class="kpi-ic">✅</span><span class="kpi-val ye" id="lp-feas">—</span><div class="kpi-lbl">الحالة</div></div>
+    </div>
+    <div class="col2">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ تعريف المسألة</span></div>
+        <div style="padding:18px">
+          <div class="cc"><div class="cc-t">// دالة الهدف Max Z</div>
+            <div style="display:flex;align-items:center;gap:8px"><input class="ci" id="lp-c1" value="5" type="number" style="width:70px"><span style="color:var(--tx2)">X₁ +</span><input class="ci" id="lp-c2" value="4" type="number" style="width:70px"><span style="color:var(--tx2)">X₂</span></div>
+          </div>
+          <div class="cc" style="margin-top:14px"><div class="cc-t">// القيود</div><div id="lp-cons-wrap"></div><button class="ibtn ibtn-c" onclick="addLPCon()" style="margin-top:10px">+ قيد</button></div>
+          <button class="cbtn" onclick="solveLP()" style="margin-top:14px">// حل</button>
+          <div style="display:flex;gap:8px;margin-top:10px"><button class="ibtn ibtn-p" onclick="loadLPEx(1)">مثال 1</button><button class="ibtn ibtn-p" onclick="loadLPEx(2)">مثال 2</button><button class="ibtn ibtn-p" onclick="loadLPEx(3)">مثال 3</button></div>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ النتائج</span></div>
+        <div style="padding:14px 18px"><canvas id="lp-canvas" style="width:100%;height:280px;display:block;border:1px solid rgba(124,58,237,.15);border-radius:10px;background:rgba(0,0,0,.25)"></canvas><div class="sim-out" id="lp-result" style="margin-top:12px">اضغط حل</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ LP MODULE</div>
+</div>`;
+}
+
+function pgInvSim() {
+  return `
+<div class="pg" id="pg-invsim">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ INVENTORY SIMULATION</div>
+    <h1 class="h1">محاكاة المخزون الديناميكي</h1>
+    <div class="kpi-row">
+      <div class="kpi"><span class="kpi-ic">📦</span><span class="kpi-val or" id="sim-avg">—</span><div class="kpi-lbl">متوسط المخزون</div></div>
+      <div class="kpi"><span class="kpi-ic">🔴</span><span class="kpi-val rd" id="sim-out2">—</span><div class="kpi-lbl">حالات النفاد</div></div>
+      <div class="kpi"><span class="kpi-ic">💰</span><span class="kpi-val gr" id="sim-cost">—</span><div class="kpi-lbl">التكلفة</div></div>
+      <div class="kpi"><span class="kpi-ic">📅</span><span class="kpi-val" id="sim-ord">—</span><div class="kpi-lbl">الطلبيات</div></div>
+    </div>
+    <div class="col2">
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ المعاملات</span></div>
+        <div style="padding:18px"><div class="cc">
+          <div class="cr"><span class="cl">المخزون الابتدائي</span><input class="ci" id="is-init" value="500" type="number"></div>
+          <div class="cr"><span class="cl">الطلب اليومي</span><input class="ci" id="is-dem" value="25" type="number"></div>
+          <div class="cr"><span class="cl">تباين ±</span><input class="ci" id="is-var" value="10" type="number"></div>
+          <div class="cr"><span class="cl">ROP</span><input class="ci" id="is-rop" value="100" type="number"></div>
+          <div class="cr"><span class="cl">EOQ</span><input class="ci" id="is-eoq" value="200" type="number"></div>
+          <div class="cr"><span class="cl">مهلة (يوم)</span><input class="ci" id="is-lt" value="7" type="number"></div>
+          <div class="cr"><span class="cl">عدد الأيام</span><input class="ci" id="is-days" value="90" type="number"></div>
+        </div><button class="cbtn" onclick="runInvSim()" style="margin-top:12px">▶ ابدأ</button></div>
+      </div>
+      <div class="panel"><div class="panel-head"><span class="panel-title">⬡ الرسم البياني</span></div>
+        <div style="padding:14px 18px"><canvas id="is-canvas" style="width:100%;height:260px;display:block;border:1px solid rgba(124,58,237,.15);border-radius:10px;background:rgba(0,0,0,.25)"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ INVENTORY SIM</div>
+</div>`;
+}
+
+function pgScenario() {
+  return `
+<div class="pg" id="pg-scenario">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ SCENARIO COMPARISON</div>
+    <h1 class="h1">مقارنة السيناريوهات</h1>
+    <div class="panel"><div class="panel-head"><span class="panel-title">⬡ السيناريوهات</span><button class="ibtn ibtn-g" onclick="addSc()">+ إضافة</button></div>
+      <div style="padding:18px"><div class="cg c3" id="sc-inputs"></div><button class="cbtn" onclick="runSc()" style="margin-top:14px">// قارن</button></div>
+    </div>
+    <div class="panel" id="sc-results" style="display:none"><div class="panel-head"><span class="panel-title">⬡ النتائج</span></div><div class="tw" style="padding:14px"><table class="dt"><thead><tr id="sc-thead"></tr></thead><tbody id="sc-tbody"></tbody></table></div></div>
+  </div>
+  <div class="foot">⬢ SCENARIOS</div>
+</div>`;
+}
+
+function pgFormula() {
+  return `
+<div class="pg" id="pg-formula">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ FORMULA LIBRARY</div>
+    <h1 class="h1">مكتبة الصيغ الهندسية</h1>
+    <div id="formula-grid"></div>
+  </div>
+  <div class="foot">⬢ FORMULAS</div>
+</div>`;
+}
+
+function pgCases() {
+  return `
+<div class="pg" id="pg-cases">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ CASE STUDIES</div>
+    <h1 class="h1">الحالات الدراسية التفاعلية</h1>
+    <div class="svc-grid" id="cases-list"></div>
+    <div class="panel" id="case-panel" style="display:none;margin-top:20px">
+      <div class="panel-head"><span class="panel-title" id="case-title">الحالة</span><button class="ibtn ibtn-c" onclick="resetCase()">↺ إعادة</button></div>
+      <div style="padding:20px">
+        <div style="background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.15);padding:14px 16px;border-radius:12px;margin-bottom:16px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--neon);margin-bottom:8px">// المسألة</div>
+          <div style="font-size:13px;line-height:1.9" id="case-context"></div>
+        </div>
+        <div id="case-steps-wrap"></div>
+        <div class="sim-out" id="case-feedback" style="display:none;margin-top:14px"></div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="ibtn ibtn-o" onclick="checkCaseAnswer()">// تحقق</button>
+          <button class="ibtn ibtn-p" onclick="showCaseSolution()">💡 الحل</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">⬢ CASE STUDIES</div>
+</div>`;
+}
+
+function pgVSM() {
+  return `
+<div class="pg" id="pg-vsm">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ VALUE STREAM MAP</div>
+    <h1 class="h1">خريطة تدفق القيمة</h1>
+    <div class="kpi-row">
+      <div class="kpi"><span class="kpi-ic">⏱</span><span class="kpi-val or" id="vsm-pt">—</span><div class="kpi-lbl">PT الإجمالي</div></div>
+      <div class="kpi"><span class="kpi-ic">⏸</span><span class="kpi-val ye" id="vsm-wt">—</span><div class="kpi-lbl">WT الانتظار</div></div>
+      <div class="kpi"><span class="kpi-ic">📈</span><span class="kpi-val" id="vsm-lt">—</span><div class="kpi-lbl">Lead Time</div></div>
+      <div class="kpi"><span class="kpi-ic">⚙️</span><span class="kpi-val gr" id="vsm-pce">—</span><div class="kpi-lbl">PCE %</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><span class="panel-title">⬡ مراحل الإنتاج</span><div class="panel-acts"><button class="ibtn ibtn-g" onclick="addVSMStep()">+ مرحلة</button><button class="ibtn ibtn-c" onclick="calcVSM()">// احسب</button></div></div>
+      <div style="overflow-x:auto;padding:20px;background:rgba(0,0,0,.25);min-height:140px;border-bottom:1px solid rgba(124,58,237,.1)" id="vsm-canvas"></div>
+      <div class="tw"><table class="dt"><thead><tr><th>المرحلة</th><th>وقت العملية</th><th>الانتظار</th><th>العمال</th><th>العيوب %</th><th></th></tr></thead><tbody id="vsm-table"></tbody></table></div>
+    </div>
+  </div>
+  <div class="foot">⬢ VSM</div>
+</div>`;
+}
+
+function pgReport() {
+  return `
+<div class="pg" id="pg-report">
+  <div class="wrap">
+    <button class="back" onclick="go('menu')">← القائمة</button>
+    <div class="crumb">⬢ HEALTH REPORT</div>
+    <h1 class="h1">تقرير الصحة الإنتاجية</h1>
+    <div id="health-content"></div>
+  </div>
+  <div class="foot">⬢ HEALTH REPORT</div>
+</div>`;
+}
+
+// ─────────── RENDERERS ───────────
+const iSM = { ok: ['متوفر', 'ok'], low: ['منخفض', 'lo'], critical: ['حرج', 'cr'] };
+const pjSM = { plan: ['مخطط', 'pl'], progress: ['قيد التنفيذ', 'pr'], done: ['مكتمل', 'dn'], hold: ['متوقف', 'ho'] };
+
+function renderAll() {
+  renderInv(); renderSup(); renderProj(); renderWO(); refreshDash();
+}
+
+function renderInv() {
+  const b = $('inv-body'); if (!b) return;
+  b.innerHTML = invData.map(r => `<tr id="ir-${r.id}">
+    <td><span class="editable" onclick="ie('inv','code',${r.id},'text')" style="font-family:'JetBrains Mono',monospace;color:var(--neon)">${r.code}</span></td>
+    <td><span class="editable" onclick="ie('inv','name',${r.id},'text')">${r.name}</span></td>
+    <td><span class="editable" onclick="ie('inv','qty',${r.id},'number')" style="font-family:'JetBrains Mono',monospace">${r.qty.toLocaleString()}</span></td>
+    <td>${r.unit}</td>
+    <td><span style="color:var(--tx2)">${r.min}</span></td>
+    <td>${r.loc}</td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.cost}</span></td>
+    <td><span class="b ${iSM[r.status][1]}">${iSM[r.status][0]}</span></td>
+    <td><button class="act-mini d" onclick="delRow('inv',${r.id})">🗑</button></td>
+  </tr>`).join('');
+  if ($('ik-total')) $('ik-total').textContent = invData.length;
+  if ($('ik-low')) $('ik-low').textContent = invData.filter(r => r.status === 'low').length;
+  if ($('ik-crit')) $('ik-crit').textContent = invData.filter(r => r.status === 'critical').length;
+  if ($('ik-sup')) $('ik-sup').textContent = supData.length;
+  saveAll();
+}
+
+function renderSup() {
+  const b = $('sup-body'); if (!b) return;
+  b.innerHTML = supData.map(r => `<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;color:var(--neon)">${r.code}</span></td>
+    <td>${r.name}</td>
+    <td>${r.company}</td>
+    <td><span style="color:var(--neon-2)">${r.spec}</span></td>
+    <td style="text-align:center">${r.lead}</td>
+    <td><span style="color:var(--ye)">${stars(r.rating)}</span></td>
+    <td><span class="b ${r.status === 'ok' ? 'ok' : 'lo'}">${r.status === 'ok' ? 'نشط' : 'غير نشط'}</span></td>
+    <td><button class="act-mini d" onclick="delRow('sup',${r.id})">🗑</button></td>
+  </tr>`).join('');
+  saveAll();
+}
+
+function renderProj() {
+  const b = $('proj-body'); if (!b) return;
+  const colors = { plan: 'var(--neon)', progress: 'var(--or)', done: 'var(--gr)', hold: 'var(--neon-2)' };
+  b.innerHTML = projData.map(r => `<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;color:var(--neon)">${r.code}</span></td>
+    <td>${r.name}</td>
+    <td>${r.manager}</td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.start}</span></td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.end}</span></td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.budget.toLocaleString()}</span></td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:rgba(124,58,237,.1);border-radius:100px;overflow:hidden"><div style="height:100%;width:${r.progress}%;background:${colors[r.status]};border-radius:100px"></div></div><span style="font-family:'JetBrains Mono',monospace;font-size:10px">${r.progress}%</span></div></td>
+    <td><span class="b ${pjSM[r.status][1]}">${pjSM[r.status][0]}</span></td>
+    <td><button class="act-mini e" onclick="openProjModal(${r.id})">✏</button><button class="act-mini d" onclick="delRow('proj',${r.id})">🗑</button></td>
+  </tr>`).join('');
+  if ($('pjk-total')) $('pjk-total').textContent = projData.length;
+  if ($('pjk-act')) $('pjk-act').textContent = projData.filter(r => r.status === 'progress').length;
+  if ($('pjk-done')) $('pjk-done').textContent = projData.filter(r => r.status === 'done').length;
+  if ($('pjk-plan')) $('pjk-plan').textContent = projData.filter(r => r.status === 'plan').length;
+  renderGantt();
+  saveAll();
+}
+
+function renderGantt() {
+  const g = $('gantt-chart'); if (!g) return;
+  const cols = { plan: 'linear-gradient(90deg,var(--neon),rgba(0,240,255,.3))', progress: 'linear-gradient(90deg,var(--or),rgba(255,122,0,.3))', done: 'linear-gradient(90deg,var(--gr),rgba(34,255,170,.3))', hold: 'linear-gradient(90deg,var(--neon-2),rgba(124,58,237,.3))' };
+  g.innerHTML = projData.map(r => `<div class="gantt-row"><div class="gantt-lbl">${r.name.slice(0, 18)}</div><div class="gantt-track"><div class="gantt-fill" style="width:${r.progress}%;background:${cols[r.status]}"></div><span class="gantt-pct">${r.progress}%</span></div></div>`).join('');
+}
+
+function renderWO() {
+  const b = $('wo-body'); if (!b) return;
+  const prioCol = { 'حرج': 'var(--rd)', 'متوسط': 'var(--ye)', 'منخفض': 'var(--tx2)' };
+  const statBadge = { 'مشغول': 'ok', 'قيد التنفيذ': 'pr', 'مكتمل': 'dn' };
+  b.innerHTML = woData.map(r => `<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;color:var(--neon)">${r.code}</span></td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.machine}</span></td>
+    <td>${r.type}</td>
+    <td><span style="color:${prioCol[r.priority] || 'var(--tx2)'};font-weight:600">${r.priority}</span></td>
+    <td>${r.tech}</td>
+    <td><span style="font-family:'JetBrains Mono',monospace">${r.due}</span></td>
+    <td><span class="b ${statBadge[r.status] || 'pl'}">${r.status}</span></td>
+    <td><button class="act-mini e" onclick="openWOModal(${r.id})">✏</button><button class="act-mini d" onclick="delRow('wo',${r.id})">🗑</button></td>
+  </tr>`).join('');
+  if ($('wo-open')) $('wo-open').textContent = woData.filter(r => r.status !== 'مكتمل').length;
+  saveAll();
+}
+
+function refreshDash() {
+  if ($('dk-inv')) $('dk-inv').textContent = invData.length;
+  if ($('dk-proj')) $('dk-proj').textContent = projData.filter(r => r.status === 'progress').length;
+  if ($('dk-alerts')) $('dk-alerts').textContent = invData.filter(r => r.status === 'low' || r.status === 'critical').length;
+  if ($('d-bars')) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const vals = [420, 580, 510, 760, 690, 430, 810];
+    const max = Math.max(...vals);
+    $('d-bars').innerHTML = vals.map((v, i) => `<div class="bitem"><div class="bfill" style="height:${(v / max) * 100}%" data-v="${v}"></div><div class="blbl">${days[i]}</div></div>`).join('');
+  }
+}
+
+// ─────────── INLINE EDIT / DELETE ───────────
+function ie(table, field, id, type) {
+  const ds = { inv: invData, sup: supData, proj: projData, wo: woData };
+  const row = ds[table].find(r => r.id === id); if (!row) return;
+  const val = prompt(`تعديل ${field}`, row[field]);
+  if (val !== null) {
+    row[field] = type === 'number' ? +val : val;
+    if (table === 'inv') renderInv(); else if (table === 'sup') renderSup(); else if (table === 'proj') renderProj(); else renderWO();
+    toast('✓ تم التعديل');
+  }
+}
+window.ie = ie;
+
+function delRow(table, id) {
+  if (!confirm('حذف هذا العنصر؟')) return;
+  if (table === 'inv') { invData = invData.filter(r => r.id !== id); renderInv(); }
+  else if (table === 'sup') { supData = supData.filter(r => r.id !== id); renderSup(); }
+  else if (table === 'proj') { projData = projData.filter(r => r.id !== id); renderProj(); }
+  else if (table === 'wo') { woData = woData.filter(r => r.id !== id); renderWO(); }
+  toast('✓ تم الحذف');
+}
+window.delRow = delRow;
+
+// ─────────── MODALS ───────────
+function openModal(title, body, save) {
+  $('m-title').textContent = title; $('m-body').innerHTML = body; $('m-save').onclick = save;
+  $('modal').classList.add('open');
+}
+function closeModal() { $('modal').classList.remove('open'); }
+window.closeModal = closeModal;
+
+function openInvModal() {
+  openModal('إضافة بند مخزون', `
+    <div class="f2"><div class="fg"><label class="fl">الرمز</label><input class="fi" id="f-code" placeholder="MAT-006"></div><div class="fg"><label class="fl">المادة</label><input class="fi" id="f-name"></div></div>
+    <div class="f2"><div class="fg"><label class="fl">الكمية</label><input class="fi" id="f-qty" type="number" value="0"></div><div class="fg"><label class="fl">الوحدة</label><select class="fi" id="f-unit"><option>كجم</option><option>لتر</option><option>قطعة</option><option>متر</option></select></div></div>
+    <div class="f2"><div class="fg"><label class="fl">الحد الأدنى</label><input class="fi" id="f-min" type="number" value="0"></div><div class="fg"><label class="fl">الموقع</label><input class="fi" id="f-loc" placeholder="A-1"></div></div>
+    <div class="f2"><div class="fg"><label class="fl">التكلفة</label><input class="fi" id="f-cost" type="number" value="0" step="0.01"></div><div class="fg"><label class="fl">الحالة</label><select class="fi" id="f-status"><option value="ok">متوفر</option><option value="low">منخفض</option><option value="critical">حرج</option></select></div></div>
+  `, () => {
+    invData.push({ id: nid.inv++, code: gv('f-code'), name: gv('f-name'), qty: +gv('f-qty'), unit: gv('f-unit'), min: +gv('f-min'), loc: gv('f-loc'), cost: +gv('f-cost'), status: gv('f-status') });
+    renderInv(); closeModal(); toast('✓ تمت الإضافة');
+  });
+}
+window.openInvModal = openInvModal;
+
+function openSupModal() {
+  openModal('إضافة مورد', `
+    <div class="f2"><div class="fg"><label class="fl">الرمز</label><input class="fi" id="s-code" placeholder="SUP-004"></div><div class="fg"><label class="fl">الاسم</label><input class="fi" id="s-name"></div></div>
+    <div class="fg"><label class="fl">الشركة</label><input class="fi" id="s-co"></div>
+    <div class="fg"><label class="fl">التخصص</label><input class="fi" id="s-sp"></div>
+    <div class="f2"><div class="fg"><label class="fl">المهلة (يوم)</label><input class="fi" id="s-ld" type="number" value="7"></div><div class="fg"><label class="fl">التقييم</label><input class="fi" id="s-rt" type="number" min="1" max="5" value="5"></div></div>
+  `, () => {
+    supData.push({ id: nid.sup++, code: gv('s-code'), name: gv('s-name'), company: gv('s-co'), spec: gv('s-sp'), lead: +gv('s-ld'), rating: +gv('s-rt'), status: 'ok' });
+    renderSup(); closeModal(); toast('✓ تمت الإضافة');
+  });
+}
+window.openSupModal = openSupModal;
+
+function openProjModal(editId) {
+  const r = editId ? projData.find(x => x.id === editId) : null;
+  openModal(r ? 'تعديل مشروع' : 'مشروع جديد', `
+    <div class="f2"><div class="fg"><label class="fl">الرمز</label><input class="fi" id="p-code" value="${r ? r.code : ''}"></div><div class="fg"><label class="fl">الاسم</label><input class="fi" id="p-name" value="${r ? r.name : ''}"></div></div>
+    <div class="fg"><label class="fl">المسؤول</label><input class="fi" id="p-mgr" value="${r ? r.manager : ''}"></div>
+    <div class="f2"><div class="fg"><label class="fl">البدء</label><input class="fi" id="p-st" type="date" value="${r ? r.start : ''}"></div><div class="fg"><label class="fl">الانتهاء</label><input class="fi" id="p-en" type="date" value="${r ? r.end : ''}"></div></div>
+    <div class="f2"><div class="fg"><label class="fl">الميزانية</label><input class="fi" id="p-bg" type="number" value="${r ? r.budget : 0}"></div><div class="fg"><label class="fl">التقدم %</label><input class="fi" id="p-pg" type="number" min="0" max="100" value="${r ? r.progress : 0}"></div></div>
+    <div class="fg"><label class="fl">الحالة</label><select class="fi" id="p-ss"><option value="plan" ${r && r.status === 'plan' ? 'selected' : ''}>مخطط</option><option value="progress" ${r && r.status === 'progress' ? 'selected' : ''}>قيد التنفيذ</option><option value="done" ${r && r.status === 'done' ? 'selected' : ''}>مكتمل</option><option value="hold" ${r && r.status === 'hold' ? 'selected' : ''}>متوقف</option></select></div>
+  `, () => {
+    const d = { code: gv('p-code'), name: gv('p-name'), manager: gv('p-mgr'), start: gv('p-st'), end: gv('p-en'), budget: +gv('p-bg'), progress: +gv('p-pg'), status: gv('p-ss') };
+    if (r) Object.assign(r, d); else projData.push({ id: nid.proj++, ...d });
+    renderProj(); closeModal(); toast('✓ تم');
+  });
+}
+window.openProjModal = openProjModal;
+
+function openWOModal(editId) {
+  const r = editId ? woData.find(x => x.id === editId) : null;
+  openModal(r ? 'تعديل أمر العمل' : 'أمر عمل جديد', `
+    <div class="f2"><div class="fg"><label class="fl">الرمز</label><input class="fi" id="w-code" value="${r ? r.code : ''}"></div><div class="fg"><label class="fl">الآلة</label><input class="fi" id="w-machine" value="${r ? r.machine : ''}"></div></div>
+    <div class="f2"><div class="fg"><label class="fl">النوع</label><select class="fi" id="w-type"><option ${r && r.type === 'وقائية' ? 'selected' : ''}>وقائية</option><option ${r && r.type === 'تصحيحية' ? 'selected' : ''}>تصحيحية</option><option ${r && r.type === 'طارئة' ? 'selected' : ''}>طارئة</option></select></div><div class="fg"><label class="fl">الأولوية</label><select class="fi" id="w-prio"><option ${r && r.priority === 'حرج' ? 'selected' : ''}>حرج</option><option ${r && r.priority === 'متوسط' ? 'selected' : ''}>متوسط</option><option ${r && r.priority === 'منخفض' ? 'selected' : ''}>منخفض</option></select></div></div>
+    <div class="f2"><div class="fg"><label class="fl">الفني</label><input class="fi" id="w-tech" value="${r ? r.tech : ''}"></div><div class="fg"><label class="fl">الاستحقاق</label><input class="fi" id="w-due" type="date" value="${r ? r.due : ''}"></div></div>
+    <div class="fg"><label class="fl">الحالة</label><select class="fi" id="w-status"><option ${r && r.status === 'مشغول' ? 'selected' : ''}>مشغول</option><option ${r && r.status === 'قيد التنفيذ' ? 'selected' : ''}>قيد التنفيذ</option><option ${r && r.status === 'مكتمل' ? 'selected' : ''}>مكتمل</option></select></div>
+  `, () => {
+    const d = { code: gv('w-code'), machine: gv('w-machine'), type: gv('w-type'), priority: gv('w-prio'), tech: gv('w-tech'), due: gv('w-due'), status: gv('w-status') };
+    if (r) Object.assign(r, d); else woData.push({ id: nid.wo++, ...d });
+    renderWO(); closeModal(); toast('✓ تم');
+  });
+}
+window.openWOModal = openWOModal;
+
+// ─────────── TABS ───────────
+function invTab(t) { const tabs = ['items', 'calc', 'sup']; document.querySelectorAll('#pg-inv .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('itp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+function projTab(t) { const tabs = ['list', 'gantt', 'calc', 'cpm']; document.querySelectorAll('#pg-proj .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('pjtp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+function maintTab(t) { const tabs = ['wo', 'calc']; document.querySelectorAll('#pg-maint .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('mtp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+function statsTab(t) { const tabs = ['desc', 'dist', 'hyp', 'reg', 'forecast']; document.querySelectorAll('#pg-stats .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('stp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+function queueTab(t) { const tabs = ['mm1', 'mmc', 'sim']; document.querySelectorAll('#pg-queue .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('qtp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+function hfTab(t) { const tabs = ['niosh', 'tlx', 'fatigue', 'rula']; document.querySelectorAll('#pg-hf .tab').forEach((b, i) => b.classList.toggle('act', tabs[i] === t)); tabs.forEach(id => { const p = $('hftp-' + id); if (p) p.classList.toggle('act', id === t); }); }
+window.invTab = invTab; window.projTab = projTab; window.maintTab = maintTab; window.statsTab = statsTab; window.queueTab = queueTab; window.hfTab = hfTab;
+
+// ─────────── CALCULATIONS ───────────
+function calcEOQ() { const D = +gv('eoq-d'), S = +gv('eoq-s'), H = +gv('eoq-h'); $('eoq-r').textContent = D && S && H ? `EOQ = ${Math.sqrt(2 * D * S / H).toFixed(1)} وحدة` : 'أدخل القيم'; }
+function calcROP() { const d = +gv('rop-d'), l = +gv('rop-l'), s = +gv('rop-s'); $('rop-r').textContent = `ROP = ${(d * l + s).toFixed(0)} وحدة`; }
+function calcSS() { const dm = +gv('ss-dm'), da = +gv('ss-da'), lt = +gv('ss-lt'); $('ss-r').textContent = `SS = ${((dm - da) * lt).toFixed(0)} وحدة`; }
+function calcITO() { const c = +gv('ito-c'), a = +gv('ito-a'); const r = a ? c / a : 0; $('ito-r').textContent = `معدل الدوران = ${r.toFixed(2)}x | ${r ? (365 / r).toFixed(0) : '-'} يوم/دورة`; }
+function calcABC() { const a = +gv('abc-a'), b = +gv('abc-b'), c = +gv('abc-c'); const t = a + b + c; $('abc-r').textContent = t ? `A:${(a / t * 100).toFixed(1)}% B:${(b / t * 100).toFixed(1)}% C:${(c / t * 100).toFixed(1)}%` : '---'; }
+function calcHC() { const i = +gv('hc-i'), r = +gv('hc-r2'); $('hc-r').textContent = `${(i * r / 100).toLocaleString()} ريال/سنة`; }
+function calcCPI() { const ev = +gv('cpi-ev'), ac = +gv('cpi-ac'); const v = ac ? ev / ac : 0; $('cpi-r').textContent = `CPI = ${v.toFixed(3)} ${v >= 1 ? '✓' : '⚠'}`; }
+function calcSPI() { const ev = +gv('spi-ev'), pv = +gv('spi-pv'); const v = pv ? ev / pv : 0; $('spi-r').textContent = `SPI = ${v.toFixed(3)} ${v >= 1 ? '✓' : '⚠'}`; }
+function calcEAC() { const b = +gv('eac-b'), c = +gv('eac-c'); $('eac-r').textContent = c ? `EAC = ${(b / c).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '---'; }
+function calcMTBF() { const t = +gv('mtbf-t'), f = +gv('mtbf-f'); $('mtbf-r').textContent = f ? `MTBF = ${(t / f).toFixed(1)} ساعة` : '---'; }
+function calcAV() { const m = +gv('av-m'), t = +gv('av-t'); $('av-r').textContent = `التوافر = ${(m / (m + t) * 100).toFixed(2)}%`; }
+function calcOEE() { const a = +gv('oee-a'), p = +gv('oee-p'), q = +gv('oee-q'); $('oee-r').textContent = `OEE = ${(a * p * q / 10000).toFixed(2)}%`; }
+function calcCpk() { const u = +gv('cpk-u'), l = +gv('cpk-l'), m = +gv('cpk-m'), s = +gv('cpk-s'); const v = Math.min((u - m) / (3 * s), (m - l) / (3 * s)); $('cpk-r').textContent = `Cpk = ${v.toFixed(3)} ${v >= 1.33 ? '✓ قادر' : v >= 1 ? '⚠' : '✕'}`; }
+function calcDPMO() { const d = +gv('dpmo-d'), u = +gv('dpmo-u'), o = +gv('dpmo-o'); const v = u && o ? d / (u * o) * 1e6 : 0; $('dpmo-r').textContent = `DPMO = ${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`; }
+function calcCT() { const t = +gv('ct-t'), q = +gv('ct-q'), d = +gv('ct-d'); $('ct-r').textContent = `CT=${q ? (t / q).toFixed(2) : '-'}د | Takt=${d ? (t / d).toFixed(2) : '-'}د`; }
+window.calcEOQ = calcEOQ; window.calcROP = calcROP; window.calcSS = calcSS; window.calcITO = calcITO; window.calcABC = calcABC; window.calcHC = calcHC;
+window.calcCPI = calcCPI; window.calcSPI = calcSPI; window.calcEAC = calcEAC; window.calcMTBF = calcMTBF; window.calcAV = calcAV; window.calcOEE = calcOEE;
+window.calcCpk = calcCpk; window.calcDPMO = calcDPMO; window.calcCT = calcCT;
+
+// ─────────── STATS ───────────
+function erf(x) { const t = 1 / (1 + .3275911 * Math.abs(x)); const y = 1 - t * (.254829592 + t * (-.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429)))) * Math.exp(-x * x); return x >= 0 ? y : -y; }
+function normCDF(x, mu, sig) { return .5 * (1 + erf((x - mu) / (sig * Math.sqrt(2)))); }
+function factorial(n) { if (n <= 1) return 1; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+
+function calcDesc() {
+  const raw = gv('stat-data').split(',').map(x => +x.trim()).filter(x => !isNaN(x));
+  if (raw.length < 2) return;
+  const n = raw.length, sum = raw.reduce((a, b) => a + b, 0), mean = sum / n;
+  const sorted = [...raw].sort((a, b) => a - b);
+  const variance = raw.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  const std = Math.sqrt(variance);
+  const med = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const cv = mean ? std / mean * 100 : 0;
+  const out = $('desc-out'); out.style.display = 'block';
+  out.textContent = `n=${n} | المتوسط=${mean.toFixed(3)} | الوسيط=${med.toFixed(3)}\nالانحراف المعياري=${std.toFixed(3)} | التباين=${variance.toFixed(3)}\nأدنى=${sorted[0]} | أعلى=${sorted[n - 1]} | المدى=${sorted[n - 1] - sorted[0]}\nQ1=${sorted[Math.floor(n / 4)]} | Q3=${sorted[Math.floor(3 * n / 4)]} | معامل الاختلاف=${cv.toFixed(2)}%`;
+}
+function calcSPC() { const u = +gv('spc-ucl'), l = +gv('spc-lcl'), x = +gv('spc-x'); $('spc-r').textContent = (x >= l && x <= u) ? `✓ ضمن السيطرة` : `✕ خارج السيطرة! x=${x}`; }
+function calcNormal() { const mu = +gv('nd-mu'), sig = +gv('nd-sig'), x = +gv('nd-x'); $('nd-r').textContent = `P(X≤${x})=${normCDF(x, mu, sig).toFixed(4)} | Z=${((x - mu) / sig).toFixed(3)}`; }
+function calcPoisson() { const lam = +gv('po-lam'), k = +gv('po-k'); $('po-r').textContent = `P(X=${k})=${(Math.pow(lam, k) * Math.exp(-lam) / factorial(k)).toFixed(6)}`; }
+function calcExp() { const lam = +gv('ex-lam'), t = +gv('ex-t'); $('ex-r').textContent = `P(T≤${t})=${(1 - Math.exp(-lam * t)).toFixed(4)} | E[T]=${(1 / lam).toFixed(3)}`; }
+function calcZTest() { const xbar = +gv('zt-xbar'), mu = +gv('zt-mu'), sig = +gv('zt-sig'), n = +gv('zt-n'), alpha = +gv('zt-a'); const z = (xbar - mu) / (sig / Math.sqrt(n)); const zcrit = alpha <= .01 ? 2.576 : alpha <= .05 ? 1.96 : 1.645; $('zt-r').textContent = `Z=${z.toFixed(3)} | Z_crit=±${zcrit} | ${Math.abs(z) > zcrit ? '✕ ارفض H₀' : '✓ لا ترفض H₀'}`; }
+function calcCI() { const xbar = +gv('ci-xbar'), sig = +gv('ci-sig'), n = +gv('ci-n'), conf = +gv('ci-conf'); const z = conf >= 99 ? 2.576 : conf >= 95 ? 1.96 : 1.645, me = z * sig / Math.sqrt(n); $('ci-r').textContent = `CI=[${(xbar - me).toFixed(3)}, ${(xbar + me).toFixed(3)}]`; }
+function calcRegression() {
+  const xs = gv('reg-x').split(',').map(x => +x.trim()).filter(x => !isNaN(x));
+  const ys = gv('reg-y').split(',').map(x => +x.trim()).filter(x => !isNaN(x));
+  const n = Math.min(xs.length, ys.length); if (n < 2) return;
+  const mx = xs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  const my = ys.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) ** 2; }
+  const b = den ? num / den : 0, a = my - b * mx;
+  const yh = xs.slice(0, n).map(x => a + b * x);
+  const ssr = ys.slice(0, n).reduce((s, y, i) => s + (y - yh[i]) ** 2, 0);
+  const sst = ys.slice(0, n).reduce((s, y) => s + (y - my) ** 2, 0);
+  const r2 = sst ? 1 - ssr / sst : 0;
+  const out = $('reg-out'); out.style.display = 'block';
+  out.textContent = `ŷ = ${a.toFixed(4)} + ${b.toFixed(4)}x\nR²=${r2.toFixed(4)} | n=${n}\nSSR=${ssr.toFixed(4)} | SST=${sst.toFixed(4)}`;
+}
+function calcMA() {
+  const data = gv('ma-data').split(',').map(Number).filter(x => !isNaN(x));
+  const n = +gv('ma-n'); if (data.length < n) return;
+  const mas = [];
+  for (let i = n - 1; i < data.length; i++) { let s = 0; for (let j = i - n + 1; j <= i; j++) s += data[j]; mas.push((s / n).toFixed(2)); }
+  const out = $('ma-out'); out.style.display = 'block';
+  out.textContent = `MA(${n}): ${mas.join(' | ')}\nالتنبؤ التالي: ${mas[mas.length - 1]}`;
+}
+function calcExpSmooth() {
+  const data = gv('es-data').split(',').map(Number).filter(x => !isNaN(x));
+  const alpha = +gv('es-alpha'); if (data.length < 2) return;
+  const sm = [data[0]];
+  for (let i = 1; i < data.length; i++) sm.push(alpha * data[i] + (1 - alpha) * sm[i - 1]);
+  const out = $('es-out'); out.style.display = 'block';
+  out.textContent = `α=${alpha}\nالتمهيد: ${sm.map(v => v.toFixed(1)).join(' | ')}\nالتنبؤ التالي: ${sm[sm.length - 1].toFixed(2)}`;
+}
+window.calcDesc = calcDesc; window.calcSPC = calcSPC; window.calcNormal = calcNormal; window.calcPoisson = calcPoisson; window.calcExp = calcExp;
+window.calcZTest = calcZTest; window.calcCI = calcCI; window.calcRegression = calcRegression; window.calcMA = calcMA; window.calcExpSmooth = calcExpSmooth;
+
+// ─────────── QUEUE ───────────
+function setQKPIs(lq, wq, l, rho) { if ($('qk-lq')) $('qk-lq').textContent = lq.toFixed(3); if ($('qk-wq')) $('qk-wq').textContent = wq.toFixed(3); if ($('qk-l')) $('qk-l').textContent = l.toFixed(3); if ($('qk-rho')) $('qk-rho').textContent = (rho * 100).toFixed(1) + '%'; }
+function calcMM1() {
+  const lam = +gv('mm1-lam'), mu = +gv('mm1-mu');
+  if (lam >= mu) { $('mm1-out').textContent = '⚠ النظام غير مستقر: λ ≥ μ'; return; }
+  const rho = lam / mu, lq = rho * rho / (1 - rho), wq = lq / lam, l = lq + rho, w = l / lam;
+  $('mm1-out').textContent = `ρ=${(rho * 100).toFixed(2)}%\nLq=${lq.toFixed(3)} | L=${l.toFixed(3)}\nWq=${(wq * 60).toFixed(2)}د | W=${(w * 60).toFixed(2)}د\nP₀=${((1 - rho) * 100).toFixed(2)}%`;
+  setQKPIs(lq, wq, l, rho);
+}
+function calcMMC() {
+  const lam = +gv('mmc-lam'), mu = +gv('mmc-mu'), c = +gv('mmc-c');
+  const rho = lam / (c * mu);
+  if (rho >= 1) { $('mmc-out').textContent = '⚠ غير مستقر'; return; }
+  const r = lam / mu;
+  let sum = 0; for (let n = 0; n < c; n++) sum += Math.pow(r, n) / factorial(n);
+  const p0 = 1 / (sum + Math.pow(r, c) / factorial(c) * (1 / (1 - rho)));
+  const lq = Math.pow(r, c) * rho / (factorial(c) * (1 - rho) ** 2) * p0;
+  const wq = lq / lam, l = lq + r, w = l / lam;
+  $('mmc-out').textContent = `c=${c} | ρ=${(rho * 100).toFixed(2)}%\nP₀=${(p0 * 100).toFixed(3)}%\nLq=${lq.toFixed(3)} | L=${l.toFixed(3)}\nWq=${(wq * 60).toFixed(2)}د | W=${(w * 60).toFixed(2)}د`;
+  setQKPIs(lq, wq, l, rho);
+}
+function runSim() {
+  const n = +gv('sim-n'), arr = +gv('sim-arr'), svc = +gv('sim-svc'), srvs = +gv('sim-srv');
+  let clock = 0, totalWait = 0, totalSvc = 0;
+  const serverFree = new Array(srvs).fill(0);
+  const waitTimes = [];
+  for (let i = 0; i < n; i++) {
+    const iat = -arr * Math.log(Math.random()); clock += iat;
+    const st = -svc * Math.log(Math.random());
+    const free = serverFree.findIndex(t => t <= clock);
+    if (free >= 0) { waitTimes.push(0); totalSvc += st; serverFree[free] = clock + st; }
+    else {
+      const earliest = Math.min(...serverFree);
+      const wait = earliest - clock; totalWait += wait; waitTimes.push(wait);
+      totalSvc += st; const idx = serverFree.indexOf(earliest); serverFree[idx] = earliest + st;
+    }
+  }
+  const avgWait = totalWait / n, maxWait = Math.max(...waitTimes);
+  $('sim-out').textContent = `محاكاة ${n} عميل:\nمتوسط الانتظار=${avgWait.toFixed(2)} د\nأقصى انتظار=${maxWait.toFixed(2)} د\nمتوسط الخدمة=${(totalSvc / n).toFixed(2)} د\nالخوادم=${srvs}\nوقت المحاكاة الكلي=${clock.toFixed(1)} د`;
+}
+window.calcMM1 = calcMM1; window.calcMMC = calcMMC; window.runSim = runSim;
+
+// ─────────── HUMAN FACTORS ───────────
+function calcNIOSH() {
+  const L = +gv('ni-wt'), H = +gv('ni-h'), V = +gv('ni-v'), D = +gv('ni-d'), A = +gv('ni-a'), F = +gv('ni-f'), CM = +gv('ni-c');
+  const LC = 23, HM = 25 / H, VM = 1 - .003 * Math.abs(V - 75), DM = .82 + 4.5 / D, AM = 1 - .0032 * A;
+  let FM = 1; if (F <= .2) FM = .85; else if (F <= 1) FM = .75; else if (F <= 2) FM = .65; else FM = .55;
+  const RWL = LC * HM * VM * DM * AM * FM * CM, LI = L / RWL;
+  const risk = LI <= 1 ? '✓ آمن' : LI <= 2 ? '⚠ تحذير' : LI <= 3 ? '✕ خطر' : '✕✕ خطر شديد';
+  $('ni-out').textContent = `RWL=${RWL.toFixed(2)} كجم\nLI=${LI.toFixed(2)}\nالتقييم: ${risk}\n\nHM=${HM.toFixed(3)} VM=${VM.toFixed(3)}\nDM=${DM.toFixed(3)} AM=${AM.toFixed(3)}\nFM=${FM.toFixed(3)} CM=${CM}`;
+}
+function calcTLX() {
+  const md = +gv('tlx-md'), pd = +gv('tlx-pd'), td = +gv('tlx-td'), op = +gv('tlx-op'), ef = +gv('tlx-ef'), fr = +gv('tlx-fr');
+  const score = (md + pd + td + op + ef + fr) / 6;
+  const level = score <= 20 ? 'منخفض جداً ✓' : score <= 40 ? 'منخفض ✓' : score <= 60 ? 'متوسط ⚠' : score <= 80 ? 'مرتفع ✕' : 'مرتفع جداً ✕✕';
+  $('tlx-out').textContent = `NASA-TLX = ${score.toFixed(1)}/100\nالمستوى: ${level}\n\nذهني=${md} | جسدي=${pd} | زمني=${td}\nأداء=${op} | جهد=${ef} | إحباط=${fr}`;
+}
+function calcFatigue() { const wt = +gv('fat-wt'), temp = +gv('fat-temp'), phy = +gv('fat-phy'), men = +gv('fat-men'); let base = wt * .15; if (temp > 28) base += wt * .05 * (temp - 28) / 2; const rest = base + (phy / 100 * wt * .2) + (men / 100 * wt * .1); $('fat-r').textContent = `${rest.toFixed(1)} د (${(rest / wt * 100).toFixed(1)}%)`; }
+function calcWBGT() { const db = +gv('wbgt-db'), wb = +gv('wbgt-wb'), gt = +gv('wbgt-gt'); const wbgt = .7 * wb + .2 * gt + .1 * db; const risk = wbgt < 25 ? 'آمن ✓' : wbgt < 28 ? 'تحذير ⚠' : wbgt < 30 ? 'خطر ✕' : 'خطر شديد ✕✕'; $('wbgt-r').textContent = `WBGT=${wbgt.toFixed(2)}°C | ${risk}`; }
+function calcNT() { const obs = +gv('nt-obs'), cyc = +gv('nt-cyc'), rf = +gv('nt-rf'), al = +gv('nt-al'); const at = cyc ? obs / cyc : 0, nt = at * (rf / 100), st = nt * (1 + al / 100); $('nt-r').textContent = `الفعلي=${at.toFixed(3)} | الطبيعي=${nt.toFixed(3)} | القياسي=${st.toFixed(3)}`; }
+function calcRULA() {
+  const ua = +gv('rula-ua'), la = +gv('rula-la'), wr = +gv('rula-wr'), mu = +gv('rula-mu');
+  const tA = [[1, 2, 2], [2, 2, 3], [2, 3, 3], [3, 3, 4]];
+  let sA = (ua >= 1 && ua <= 4 && la >= 1 && la <= 2) ? tA[ua - 1][la - 1] : 3;
+  sA += wr + mu;
+  const level = sA <= 2 ? 'مقبول ✓' : sA <= 4 ? 'يحتاج مراقبة ⚠' : sA <= 6 ? 'يحتاج تحقيق ✕' : 'تغيير فوري ✕✕';
+  $('rula-out').textContent = `درجة RULA = ${sA}\nالتقييم: ${level}\n\nالعلوية=${ua} | السفلية=${la}\nالمعصم=${wr} | العضلات=${mu}`;
+}
+window.calcNIOSH = calcNIOSH; window.calcTLX = calcTLX; window.calcFatigue = calcFatigue; window.calcWBGT = calcWBGT; window.calcNT = calcNT; window.calcRULA = calcRULA;
+
+// ─────────── CPM ───────────
+function calcCPM() {
+  const input = gv('cpm-input').trim();
+  const parts = input.split(/\s+/);
+  const acts = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i].split(':');
+    if (p.length >= 2) acts.push({ code: p[0], dur: +p[1], pred: p[2] || '', ES: 0, EF: 0, LS: 0, LF: 0, TF: 0 });
+  }
+  if (!acts.length) return;
+  const map = {}; acts.forEach(a => map[a.code] = a);
+  acts.forEach(a => {
+    const preds = a.pred ? a.pred.split(',').filter(x => x && map[x]) : [];
+    a.ES = 0;
+    preds.forEach(p => { if (map[p].EF > a.ES) a.ES = map[p].EF; });
+    a.EF = a.ES + a.dur;
+  });
+  const projDur = Math.max(...acts.map(a => a.EF));
+  for (let i = acts.length - 1; i >= 0; i--) {
+    const a = acts[i];
+    const succs = acts.filter(s => s.pred && s.pred.split(',').indexOf(a.code) !== -1);
+    a.LF = projDur;
+    succs.forEach(s => { if (s.LS < a.LF) a.LF = s.LS; });
+    a.LS = a.LF - a.dur; a.TF = a.LS - a.ES;
+  }
+  const cp = acts.filter(a => Math.abs(a.TF) < 0.001).map(a => a.code).join(' → ');
+  let txt = `مدة المشروع: ${projDur} يوم\nالمسار الحرج: ${cp}\n\n`;
+  acts.forEach(a => { txt += `${a.code}: ES=${a.ES} EF=${a.EF} LS=${a.LS} LF=${a.LF} TF=${a.TF}${Math.abs(a.TF) < 0.001 ? ' *حرج*' : ''}\n`; });
+  $('cpm-r').textContent = txt;
+}
+window.calcCPM = calcCPM;
+
+// ─────────── LP ───────────
+let lpCons = [{ a1: 6, a2: 4, rhs: 24, sign: '<=' }, { a1: 1, a2: 2, rhs: 6, sign: '<=' }];
+
+function renderLPCons() {
+  const w = $('lp-cons-wrap'); if (!w) return;
+  w.innerHTML = lpCons.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <input class="ci" value="${c.a1}" type="number" step="0.1" style="width:60px" onchange="lpCons[${i}].a1=+this.value">
+      <span style="color:var(--tx2)">X₁+</span>
+      <input class="ci" value="${c.a2}" type="number" step="0.1" style="width:60px" onchange="lpCons[${i}].a2=+this.value">
+      <span style="color:var(--tx2)">X₂</span>
+      <select class="ci" style="width:60px" onchange="lpCons[${i}].sign=this.value">
+        <option value="<=" ${c.sign === '<=' ? 'selected' : ''}>≤</option>
+        <option value=">=" ${c.sign === '>=' ? 'selected' : ''}>≥</option>
+      </select>
+      <input class="ci" value="${c.rhs}" type="number" step="0.1" style="width:70px" onchange="lpCons[${i}].rhs=+this.value">
+      <button class="act-mini d" onclick="lpCons.splice(${i},1);renderLPCons()">✕</button>
+    </div>
+  `).join('');
+}
+function addLPCon() { lpCons.push({ a1: 1, a2: 1, rhs: 10, sign: '<=' }); renderLPCons(); }
+function loadLPEx(t) {
+  const e = {
+    1: { c1: 5, c2: 4, cons: [{ a1: 6, a2: 4, rhs: 24, sign: '<=' }, { a1: 1, a2: 2, rhs: 6, sign: '<=' }] },
+    2: { c1: 3, c2: 2, cons: [{ a1: 1, a2: 1, rhs: 4, sign: '<=' }, { a1: 2, a2: 1, rhs: 6, sign: '<=' }] },
+    3: { c1: 2, c2: 5, cons: [{ a1: 1, a2: 0, rhs: 5, sign: '<=' }, { a1: 0, a2: 1, rhs: 4, sign: '<=' }] }
+  };
+  const ex = e[t]; if (!ex) return;
+  $('lp-c1').value = ex.c1; $('lp-c2').value = ex.c2;
+  lpCons = ex.cons.slice(); renderLPCons(); solveLP();
+}
+function solveLP() {
+  const c1 = +($('lp-c1') || {}).value || 5, c2 = +($('lp-c2') || {}).value || 4;
+  const corners = [[0, 0]];
+  lpCons.forEach(c => {
+    if (c.a1) corners.push([c.rhs / c.a1, 0]);
+    if (c.a2) corners.push([0, c.rhs / c.a2]);
+  });
+  for (let i = 0; i < lpCons.length; i++) for (let j = i + 1; j < lpCons.length; j++) {
+    const a = lpCons[i], b = lpCons[j], det = a.a1 * b.a2 - a.a2 * b.a1;
+    if (Math.abs(det) < 1e-9) continue;
+    const x1 = (a.rhs * b.a2 - a.a2 * b.rhs) / det, x2 = (a.a1 * b.rhs - a.rhs * b.a1) / det;
+    if (x1 >= -1e-6 && x2 >= -1e-6) corners.push([Math.max(0, x1), Math.max(0, x2)]);
+  }
+  const feasible = corners.filter(p => {
+    if (p[0] < -1e-6 || p[1] < -1e-6) return false;
+    for (let k = 0; k < lpCons.length; k++) {
+      const lhs = lpCons[k].a1 * p[0] + lpCons[k].a2 * p[1];
+      if (lpCons[k].sign === '<=' && lhs > lpCons[k].rhs + 1e-6) return false;
+      if (lpCons[k].sign === '>=' && lhs < lpCons[k].rhs - 1e-6) return false;
+    }
+    return true;
+  });
+  if (!feasible.length) { $('lp-result').textContent = 'لا يوجد حل ممكن'; $('lp-feas').textContent = '✕'; return; }
+  let best = feasible[0], bestZ = c1 * best[0] + c2 * best[1];
+  feasible.forEach(p => { const z = c1 * p[0] + c2 * p[1]; if (z > bestZ) { bestZ = z; best = p; } });
+  $('lp-obj').textContent = bestZ.toFixed(2);
+  $('lp-x1').textContent = best[0].toFixed(2);
+  $('lp-x2').textContent = best[1].toFixed(2);
+  $('lp-feas').textContent = '✓';
+  $('lp-result').textContent = `الحل الأمثل:\nX₁ = ${best[0].toFixed(3)}\nX₂ = ${best[1].toFixed(3)}\nZ = ${bestZ.toFixed(3)}`;
+  drawLPCanvas(feasible, best, c1, c2);
+}
+function drawLPCanvas(fs, best, c1, c2) {
+  const cv = $('lp-canvas'); if (!cv) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 400, H = 280;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.clearRect(0, 0, W, H);
+  let mX = 8, mY = 6;
+  fs.forEach(p => { if (p[0] > mX) mX = p[0]; if (p[1] > mY) mY = p[1]; });
+  mX *= 1.3; mY *= 1.3;
+  const p = { t: 20, b: 36, l: 36, r: 14 };
+  const tX = x => p.l + (x / mX) * (W - p.l - p.r);
+  const tY = y => H - p.b - (y / mY) * (H - p.t - p.b);
+  // Grid
+  ctx.strokeStyle = 'rgba(124,58,237,.1)'; ctx.lineWidth = 0.5;
+  for (let i = 1; i < 5; i++) { ctx.beginPath(); ctx.moveTo(p.l, p.t + (H - p.t - p.b) * i / 5); ctx.lineTo(W - p.r, p.t + (H - p.t - p.b) * i / 5); ctx.stroke(); }
+  // Axes
+  ctx.strokeStyle = 'rgba(0,240,255,.4)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(p.l, p.t); ctx.lineTo(p.l, H - p.b); ctx.lineTo(W - p.r, H - p.b); ctx.stroke();
+  // Feasible region
+  if (fs.length >= 3) {
+    let cx = 0, cy = 0; fs.forEach(p => { cx += p[0]; cy += p[1]; }); cx /= fs.length; cy /= fs.length;
+    const sorted = fs.slice().sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+    ctx.beginPath(); ctx.moveTo(tX(sorted[0][0]), tY(sorted[0][1]));
+    for (let i = 1; i < sorted.length; i++) ctx.lineTo(tX(sorted[i][0]), tY(sorted[i][1]));
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, p.t, 0, H - p.b);
+    grad.addColorStop(0, 'rgba(0,240,255,.25)'); grad.addColorStop(1, 'rgba(124,58,237,.15)');
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,240,255,.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  fs.forEach(p2 => { ctx.beginPath(); ctx.arc(tX(p2[0]), tY(p2[1]), 4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,240,255,.9)'; ctx.fill(); });
+  ctx.beginPath(); ctx.arc(tX(best[0]), tY(best[1]), 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#22ffaa'; ctx.fill();
+  ctx.shadowBlur = 16; ctx.shadowColor = '#22ffaa'; ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px JetBrains Mono';
+  ctx.fillText(`Z=${(c1 * best[0] + c2 * best[1]).toFixed(1)}`, tX(best[0]) + 12, tY(best[1]) - 6);
+}
+function initLP() { renderLPCons(); solveLP(); }
+window.addLPCon = addLPCon; window.loadLPEx = loadLPEx; window.solveLP = solveLP; window.initLP = initLP;
+
+// ─────────── INVENTORY SIM ───────────
+function runInvSim() {
+  const init = +($('is-init') || {}).value || 500;
+  const dem = +($('is-dem') || {}).value || 25;
+  const va = +($('is-var') || {}).value || 10;
+  const rop = +($('is-rop') || {}).value || 100;
+  const eoq = +($('is-eoq') || {}).value || 200;
+  const lt = +($('is-lt') || {}).value || 7;
+  const days = +($('is-days') || {}).value || 90;
+  let inv = init, tc = 0, so = 0, ord = 0;
+  const hist = [inv]; let arrv = -1;
+  for (let d = 1; d <= days; d++) {
+    const dd = Math.max(0, Math.round(dem + (Math.random() - .5) * 2 * va));
+    if (d === arrv) { inv += eoq; arrv = -1; }
+    if (inv < dd) { so++; tc += (dd - inv) * 10; }
+    inv = Math.max(0, inv - dd);
+    tc += inv * 0.5;
+    if (inv <= rop && arrv === -1) { ord++; tc += 50; arrv = d + lt; }
+    hist.push(inv);
+  }
+  const avg = (hist.reduce((a, b) => a + b, 0) / hist.length).toFixed(0);
+  if ($('sim-avg')) $('sim-avg').textContent = avg;
+  if ($('sim-out2')) $('sim-out2').textContent = so;
+  if ($('sim-cost')) $('sim-cost').textContent = tc.toFixed(0);
+  if ($('sim-ord')) $('sim-ord').textContent = ord;
+  drawInvSimCanvas(hist, rop);
+}
+function drawInvSimCanvas(hist, rop) {
+  const cv = $('is-canvas'); if (!cv) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 500, H = 260;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.clearRect(0, 0, W, H);
+  const p = { t: 16, b: 28, l: 42, r: 14 }, cW = W - p.l - p.r, cH = H - p.t - p.b;
+  let mV = 0; hist.forEach(v => { if (v > mV) mV = v; }); mV *= 1.1;
+  const n = hist.length;
+  const ropY = p.t + cH * (1 - rop / mV);
+  ctx.setLineDash([4, 3]); ctx.strokeStyle = 'rgba(255,77,109,.6)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(p.l, ropY); ctx.lineTo(W - p.r, ropY); ctx.stroke(); ctx.setLineDash([]);
+  const grad = ctx.createLinearGradient(0, p.t, 0, p.t + cH);
+  grad.addColorStop(0, 'rgba(0,240,255,.35)'); grad.addColorStop(1, 'rgba(124,58,237,.05)');
+  ctx.beginPath(); ctx.moveTo(p.l, p.t + cH * (1 - hist[0] / mV));
+  for (let i = 1; i < n; i++) ctx.lineTo(p.l + (i / (n - 1)) * cW, p.t + cH * (1 - hist[i] / mV));
+  ctx.lineTo(W - p.r, p.t + cH); ctx.lineTo(p.l, p.t + cH); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(p.l, p.t + cH * (1 - hist[0] / mV));
+  for (let i = 1; i < n; i++) ctx.lineTo(p.l + (i / (n - 1)) * cW, p.t + cH * (1 - hist[i] / mV));
+  ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+}
+window.runInvSim = runInvSim;
+
+// ─────────── SCENARIOS ───────────
+let scenarios = [
+  { name: 'الأساسي', D: 5000, S: 50, H: 2, A: 90, P: 85, Q: 98 },
+  { name: 'طلب مرتفع', D: 8000, S: 50, H: 2, A: 88, P: 82, Q: 97 },
+  { name: 'احتفاظ منخفض', D: 5000, S: 50, H: 1, A: 93, P: 88, Q: 99 }
+];
+function renderScenarios() {
+  const w = $('sc-inputs'); if (!w) return;
+  w.innerHTML = scenarios.map((s, i) => `
+    <div class="cc"><div class="cc-t">// سيناريو ${i + 1}</div>
+      <div class="cr"><span class="cl">الاسم</span><input class="ci" value="${s.name}" oninput="scenarios[${i}].name=this.value"></div>
+      <div class="cr"><span class="cl">D</span><input class="ci" type="number" value="${s.D}" oninput="scenarios[${i}].D=+this.value"></div>
+      <div class="cr"><span class="cl">S</span><input class="ci" type="number" value="${s.S}" oninput="scenarios[${i}].S=+this.value"></div>
+      <div class="cr"><span class="cl">H</span><input class="ci" type="number" value="${s.H}" oninput="scenarios[${i}].H=+this.value"></div>
+      <div class="cr"><span class="cl">A %</span><input class="ci" type="number" value="${s.A}" oninput="scenarios[${i}].A=+this.value"></div>
+      <div class="cr"><span class="cl">P %</span><input class="ci" type="number" value="${s.P}" oninput="scenarios[${i}].P=+this.value"></div>
+      <div class="cr"><span class="cl">Q %</span><input class="ci" type="number" value="${s.Q}" oninput="scenarios[${i}].Q=+this.value"></div>
+    </div>
+  `).join('');
+}
+function addSc() { scenarios.push({ name: 'جديد', D: 5000, S: 50, H: 2, A: 90, P: 85, Q: 98 }); renderScenarios(); }
+function runSc() {
+  $('sc-results').style.display = 'block';
+  const thead = $('sc-thead'), tbody = $('sc-tbody');
+  let thH = '<th>المقياس</th>';
+  scenarios.forEach(s => thH += `<th style="color:var(--neon)">${s.name}</th>`);
+  thead.innerHTML = thH;
+  const metrics = [
+    { k: 'EOQ', fn: s => Math.sqrt(2 * s.D * s.S / s.H).toFixed(1) },
+    { k: 'TC', fn: s => Math.sqrt(2 * s.D * s.S * s.H).toFixed(0) },
+    { k: 'OEE %', fn: s => (s.A * s.P * s.Q / 10000).toFixed(2) + '%' }
+  ];
+  let tbH = '';
+  metrics.forEach(m => {
+    tbH += `<tr><td style="color:var(--neon-2);font-weight:700">${m.k}</td>`;
+    scenarios.forEach(s => tbH += `<td>${m.fn(s)}</td>`);
+    tbH += '</tr>';
+  });
+  tbody.innerHTML = tbH;
+}
+window.addSc = addSc; window.runSc = runSc;
+
+// ─────────── FORMULA LIBRARY ───────────
+const formulas = [
+  { c: 'مخزون', n: 'EOQ', eq: '√(2DS/H)', d: 'الكمية الاقتصادية' },
+  { c: 'مخزون', n: 'ROP', eq: 'd×L + SS', d: 'نقطة إعادة الطلب' },
+  { c: 'مخزون', n: 'Safety Stock', eq: '(d_max-d_avg)×L', d: 'مخزون الأمان' },
+  { c: 'مخزون', n: 'TC', eq: '(D/Q)S + (Q/2)H', d: 'التكلفة الكلية' },
+  { c: 'مخزون', n: 'ITR', eq: 'COGS/AvgInv', d: 'معدل دوران المخزون' },
+  { c: 'موثوقية', n: 'MTBF', eq: 'T/N', d: 'متوسط الوقت بين الأعطال' },
+  { c: 'موثوقية', n: 'Availability', eq: 'MTBF/(MTBF+MTTR)', d: 'معدل التوافر' },
+  { c: 'موثوقية', n: 'OEE', eq: 'A×P×Q', d: 'فعالية المعدات الشاملة' },
+  { c: 'جودة', n: 'Cpk', eq: 'min[(USL-μ)/3σ,(μ-LSL)/3σ]', d: 'قدرة العملية' },
+  { c: 'جودة', n: 'DPMO', eq: '(D/UO)×10⁶', d: 'عيوب لكل مليون فرصة' },
+  { c: 'جودة', n: 'Takt Time', eq: 'AvailableTime/Demand', d: 'وقت الإيقاع' },
+  { c: 'مشاريع', n: 'CPI', eq: 'EV/AC', d: 'مؤشر أداء التكلفة' },
+  { c: 'مشاريع', n: 'SPI', eq: 'EV/PV', d: 'مؤشر أداء الجدول' },
+  { c: 'مشاريع', n: 'EAC', eq: 'BAC/CPI', d: 'التكلفة عند الاكتمال' },
+  { c: 'مشاريع', n: 'PERT', eq: '(O+4M+P)/6', d: 'المدة المتوقعة' },
+  { c: 'طوابير', n: 'ρ', eq: 'λ/μ', d: 'معدل استغلال الخادم' },
+  { c: 'طوابير', n: 'Lq', eq: 'ρ²/(1-ρ)', d: 'متوسط في الطابور' },
+  { c: 'طوابير', n: "Little's Law", eq: 'L=λW', d: 'قانون ليتل' },
+  { c: 'إحصاء', n: 'Z-score', eq: '(X-μ)/σ', d: 'التوزيع الطبيعي القياسي' },
+  { c: 'إحصاء', n: 'CI', eq: 'x̄ ± Z(σ/√n)', d: 'فترة الثقة' },
+  { c: 'عوامل بشرية', n: 'NIOSH RWL', eq: '23×HM×VM×DM×AM×FM×CM', d: 'حد الرفع الموصى به' },
+  { c: 'عوامل بشرية', n: 'Standard Time', eq: 'NT×(1+Allow%)', d: 'الوقت القياسي' },
+  { c: 'تنبؤ', n: 'MAD', eq: 'Σ|At-Ft|/n', d: 'متوسط الانحراف المطلق' },
+  { c: 'تنبؤ', n: 'SES', eq: 'αAt+(1-α)Ft', d: 'التمهيد الأسي البسيط' },
+];
+function renderFormulaLib() {
+  const el = $('formula-grid'); if (!el) return;
+  const cats = [...new Set(formulas.map(f => f.c))];
+  let h = '';
+  cats.forEach(cat => {
+    h += `<div style="grid-column:1/-1;margin:14px 0 8px;padding-bottom:8px;border-bottom:1px solid rgba(124,58,237,.15)"><span style="font-family:'Orbitron',monospace;font-size:13px;color:var(--neon);letter-spacing:.1em">⬡ ${cat}</span></div>`;
+    formulas.filter(f => f.c === cat).forEach(f => {
+      h += `<div class="cc"><div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#fff;margin-bottom:6px">${f.n}</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--neon);padding:6px 10px;background:rgba(0,240,255,.06);border-radius:8px;margin-bottom:8px">${f.eq}</div><div style="font-size:11.5px;color:var(--tx2)">${f.d}</div></div>`;
+    });
+  });
+  el.innerHTML = h;
+  el.style.display = 'grid'; el.style.gridTemplateColumns = 'repeat(auto-fit,minmax(260px,1fr))'; el.style.gap = '14px';
+}
+
+// ─────────── CASES ───────────
+const casesData = [
+  { id: 'eoq', title: 'مصنع الألومنيوم — EOQ', topic: 'مخزون', q: 'طلب سنوي 12000 كجم، تكلفة طلب 150 ر، تكلفة احتفاظ 3 ر. احسب EOQ', answer: 1095, hint: 'EOQ = √(2DS/H)' },
+  { id: 'oee', title: 'خط الإنتاج — OEE', topic: 'جودة', q: 'التوافر 87.5%، الأداء 86.7%، الجودة 95%. احسب OEE', answer: 72.1, hint: 'OEE = A × P × Q' },
+  { id: 'cpm', title: 'مشروع المستودع — CPM', topic: 'مشاريع', q: 'A=5, B=8(بعدA), C=12(بعدB), D=6(بعدB), E=4(بعدC), F=3(بعدD,E). مدة المسار الحرج؟', answer: 32, hint: 'أطول مسار = A+B+C+E+F' },
+  { id: 'niosh', title: 'تحليل NIOSH', topic: 'عوامل بشرية', q: 'وزن 18كجم، H=35سم، V=75سم، D=50سم، A=0، F=2. احسب LI', answer: 1.87, hint: 'LI = الوزن / RWL' },
+  { id: 'forecast', title: 'تنبؤ الطلب — MA3', topic: 'إحصاء', q: 'بيانات: 142,138,155. احسب MA3', answer: 145, hint: 'MA3 = مجموع/3' },
+  { id: 'lp', title: 'شركة أثاث — LP', topic: 'برمجة خطية', q: 'Max 50x₁+80x₂, 2x₁+4x₂≤40, x₁+2x₂≤16. أقصى Z؟', answer: 880, hint: 'جرب نقاط الزاوية' }
+];
+let currentCase = null;
+function renderCasesList() {
+  const el = $('cases-list'); if (!el) return;
+  el.innerHTML = casesData.map(c => `
+    <div class="svc" onclick="openCase('${c.id}')">
+      <div class="svc-ic">🎓</div>
+      <div class="svc-name">${c.title}</div>
+      <div class="svc-desc">الموضوع: ${c.topic}</div>
+      <div class="svc-go">ابدأ الحالة ⬡ →</div>
+    </div>
+  `).join('');
+}
+function openCase(id) {
+  currentCase = casesData.find(c => c.id === id); if (!currentCase) return;
+  $('case-panel').style.display = 'block';
+  $('case-title').textContent = currentCase.title;
+  $('case-context').textContent = currentCase.q;
+  $('case-steps-wrap').innerHTML = `<div class="cr"><span class="cl">إجابتك</span><input class="ci" id="case-ans" type="number" step="0.1"></div><div style="font-size:11.5px;color:var(--neon);margin-top:8px">💡 ${currentCase.hint}</div>`;
+  $('case-feedback').style.display = 'none';
+  $('case-panel').scrollIntoView({ behavior: 'smooth' });
+}
+function checkCaseAnswer() {
+  if (!currentCase) return;
+  const ans = +($('case-ans') || {}).value;
+  const correct = Math.abs(ans - currentCase.answer) <= Math.abs(currentCase.answer) * 0.1;
+  const fb = $('case-feedback'); fb.style.display = 'block';
+  if (correct) { fb.style.color = 'var(--gr)'; fb.style.borderColor = 'rgba(34,255,170,.3)'; fb.textContent = `✓ إجابة صحيحة! الجواب: ${currentCase.answer}`; }
+  else { fb.style.color = 'var(--rd)'; fb.style.borderColor = 'rgba(255,77,109,.3)'; fb.textContent = `✕ خطأ. إجابتك: ${ans} | الصحيح ≈ ${currentCase.answer}`; }
+}
+function showCaseSolution() {
+  if (!currentCase) return;
+  const fb = $('case-feedback'); fb.style.display = 'block';
+  fb.style.color = 'var(--neon-2)'; fb.style.borderColor = 'rgba(124,58,237,.3)';
+  fb.textContent = `💡 الحل: ${currentCase.hint} = ${currentCase.answer}`;
+}
+function resetCase() { if (currentCase) openCase(currentCase.id); }
+window.openCase = openCase; window.checkCaseAnswer = checkCaseAnswer; window.showCaseSolution = showCaseSolution; window.resetCase = resetCase;
+
+// ─────────── VSM ───────────
+let vsmSteps = [
+  { id: 1, name: 'استلام المواد', pt: 15, wt: 120, workers: 2, defects: 0.5 },
+  { id: 2, name: 'التصنيع', pt: 45, wt: 30, workers: 4, defects: 1.2 },
+  { id: 3, name: 'التجميع', pt: 30, wt: 20, workers: 3, defects: 0.8 },
+  { id: 4, name: 'الفحص', pt: 10, wt: 15, workers: 1, defects: 0.1 },
+  { id: 5, name: 'الشحن', pt: 8, wt: 60, workers: 2, defects: 0.2 }
+];
+let nVSM = 6;
+function renderVSM() {
+  const canvas = $('vsm-canvas');
+  if (canvas) {
+    const colors = ['#00f0ff', '#7c3aed', '#ff2bd6', '#22ffaa', '#ffd166'];
+    canvas.innerHTML = vsmSteps.map((s, i) => {
+      const col = colors[i % colors.length];
+      const arrow = i < vsmSteps.length - 1 ? `<div style="display:inline-flex;align-items:center;color:var(--tx3);font-size:24px;margin:0 6px;vertical-align:top;padding-top:30px">→</div>` : '';
+      return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;margin:0 6px;vertical-align:top">
+        <div style="width:100px;height:72px;border:1.5px solid ${col};border-radius:12px;background:rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;box-shadow:0 0 16px ${col}33">
+          <div style="font-size:11px;color:#fff;font-weight:700;text-align:center">${s.name}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${col};margin-top:3px">${s.pt} د</div>
+        </div>
+        <div style="font-size:9.5px;color:var(--tx2)">${s.workers} عمال | ${s.defects}%</div>
+        <div style="font-size:9.5px;color:var(--ye)">${s.wt}د انتظار</div>
+      </div>${arrow}`;
+    }).join('');
+  }
+  const tb = $('vsm-table');
+  if (tb) {
+    tb.innerHTML = vsmSteps.map(s => `<tr>
+      <td><span class="editable" onclick="ieVSM('name',${s.id},'text')">${s.name}</span></td>
+      <td><span class="editable" onclick="ieVSM('pt',${s.id},'number')">${s.pt}</span></td>
+      <td><span class="editable" onclick="ieVSM('wt',${s.id},'number')">${s.wt}</span></td>
+      <td><span class="editable" onclick="ieVSM('workers',${s.id},'number')">${s.workers}</span></td>
+      <td><span class="editable" onclick="ieVSM('defects',${s.id},'number')">${s.defects}</span></td>
+      <td><button class="act-mini d" onclick="delVSM(${s.id})">✕</button></td>
+    </tr>`).join('');
+  }
+}
+function addVSMStep() { vsmSteps.push({ id: nVSM++, name: 'مرحلة جديدة', pt: 20, wt: 30, workers: 2, defects: 1.0 }); renderVSM(); }
+function delVSM(id) { vsmSteps = vsmSteps.filter(s => s.id !== id); renderVSM(); toast('✓ تم الحذف'); }
+function ieVSM(field, id, type) {
+  const s = vsmSteps.find(x => x.id === id); if (!s) return;
+  const val = prompt(`تعديل ${field}`, s[field]);
+  if (val !== null) { s[field] = type === 'number' ? +val : val; renderVSM(); toast('✓ تم التعديل'); }
+}
+function calcVSM() {
+  let totalPT = 0, totalWT = 0;
+  vsmSteps.forEach(s => { totalPT += s.pt; totalWT += s.wt; });
+  const totalLT = totalPT + totalWT;
+  const pce = totalLT > 0 ? (totalPT / totalLT * 100).toFixed(1) : '0';
+  $('vsm-pt').textContent = totalPT + ' د';
+  $('vsm-wt').textContent = totalWT + ' د';
+  $('vsm-lt').textContent = totalLT + ' د';
+  $('vsm-pce').textContent = pce + '%';
+  toast('✓ تم حساب مقاييس VSM');
+}
+window.addVSMStep = addVSMStep; window.delVSM = delVSM; window.ieVSM = ieVSM; window.calcVSM = calcVSM;
+
+// ─────────── HEALTH REPORT ───────────
+function renderHealthReport() {
+  const el = $('health-content'); if (!el) return;
+  const crit = invData.filter(r => r.status === 'critical').length;
+  const low = invData.filter(r => r.status === 'low').length;
+  const ok = invData.filter(r => r.status === 'ok').length;
+  const actProj = projData.filter(r => r.status === 'progress').length;
+  const openWO = woData.filter(r => r.status !== 'مكتمل').length;
+  const invScore = Math.max(0, 100 - crit * 30 - low * 10);
+  const maintScore = Math.max(0, 100 - openWO * 15);
+  const overall = Math.round((invScore + maintScore) / 2);
+  const col = overall >= 80 ? 'var(--gr)' : overall >= 60 ? 'var(--ye)' : 'var(--rd)';
+  let h = `
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:140px;height:140px;border-radius:50%;border:4px solid ${col};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 40px ${col}55;background:radial-gradient(circle,${col}22,transparent)">
+        <div style="font-family:'Orbitron',monospace;font-size:38px;font-weight:700;color:${col}">${overall}</div>
+        <div style="font-size:10px;color:var(--tx2);letter-spacing:.1em">/ 100</div>
+      </div>
+      <div style="font-family:'Orbitron',monospace;font-size:16px;color:#fff">الصحة الإنتاجية الإجمالية</div>
+    </div>
+    <div class="col2">
+      <div class="panel" style="margin:0"><div class="panel-head"><span class="panel-title">⬡ المخزون</span><span style="font-family:'JetBrains Mono',monospace;color:${col}">${invScore}%</span></div><div style="padding:14px;font-size:12.5px">${ok} متوفر | ${low} منخفض | ${crit} حرج</div></div>
+      <div class="panel" style="margin:0"><div class="panel-head"><span class="panel-title">⬡ الصيانة</span><span style="font-family:'JetBrains Mono',monospace;color:${maintScore >= 80 ? 'var(--gr)' : 'var(--ye)'}">${maintScore}%</span></div><div style="padding:14px;font-size:12.5px">${openWO} أمر مفتوح | ${actProj} مشروع نشط</div></div>
+    </div>`;
+  if (crit > 0) h += `<div style="margin-top:14px;padding:14px;background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.25);color:var(--rd);font-size:12.5px;border-radius:12px">⚠ يوجد ${crit} عنصر مخزون حرج — اطلب فوراً</div>`;
+  if (overall >= 80) h += `<div style="margin-top:14px;padding:14px;background:rgba(34,255,170,.08);border:1px solid rgba(34,255,170,.25);color:var(--gr);font-size:12.5px;border-radius:12px">✓ المنشأة تعمل بكفاءة جيدة</div>`;
+  el.innerHTML = h;
+}
+
+</script>
+</body>
+</html>
