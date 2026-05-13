@@ -485,70 +485,195 @@ table.dt tr:hover td{background:rgba(0,240,255,.04)}
 // ─────────── THREE.JS BACKGROUND SCENE ───────────
 let scene, camera, renderer, torus, particles, mouseX = 0, mouseY = 0;
 
+function makeGearGeometry(teeth, outerR, innerR, thickness) {
+  const shape = new THREE.Shape();
+  const seg = teeth * 2;
+  for (let i = 0; i <= seg; i++) {
+    const angle = (i / seg) * Math.PI * 2;
+    const r = (i % 2 === 0) ? outerR : innerR;
+    const x = Math.cos(angle) * r;
+    const y = Math.sin(angle) * r;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  const hole = new THREE.Path();
+  hole.absarc(0, 0, outerR * 0.22, 0, Math.PI * 2);
+  shape.holes.push(hole);
+  return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+}
+
 function initThree() {
   const canvas = document.getElementById('bg-canvas');
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x05060d, 0.0015);
+  scene.fog = new THREE.FogExp2(0x05060d, 0.0012);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-  camera.position.z = 300;
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+  camera.position.set(0, 30, 460);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
 
-  // Torus knot (central industrial object)
-  const torusGeo = new THREE.TorusKnotGeometry(60, 18, 200, 32, 2, 3);
-  const torusMat = new THREE.MeshBasicMaterial({
-    color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.35
-  });
-  torus = new THREE.Mesh(torusGeo, torusMat);
-  scene.add(torus);
+  // ============ FACTORY (background) ============
+  const factoryGroup = new THREE.Group();
+  const buildingMat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.35 });
+  const building = new THREE.Mesh(new THREE.BoxGeometry(170, 90, 70), buildingMat);
+  building.position.set(0, -10, 0);
+  factoryGroup.add(building);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(150, 32, 60), buildingMat);
+  roof.position.set(0, 51, 0);
+  factoryGroup.add(roof);
 
-  // Second wireframe ring (cyan)
-  const ringGeo = new THREE.TorusGeometry(120, 0.5, 16, 100);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.3 });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 3;
-  scene.add(ring);
-  window.__ring = ring;
+  // 3 Smokestacks + rising smoke
+  const stackMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.45 });
+  const smokeParticles = [];
+  for (let i = 0; i < 3; i++) {
+    const stack = new THREE.Mesh(new THREE.CylinderGeometry(7, 9, 65, 12, 1, true), stackMat);
+    stack.position.set(-55 + i * 55, 99, 0);
+    factoryGroup.add(stack);
 
-  // Particle field
-  const pGeo = new THREE.BufferGeometry();
-  const pCount = 1200;
-  const pos = new Float32Array(pCount * 3);
-  for (let i = 0; i < pCount * 3; i++) pos[i] = (Math.random() - 0.5) * 1400;
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const pMat = new THREE.PointsMaterial({
-    color: 0x00f0ff, size: 1.4, transparent: true, opacity: 0.55,
-    blending: THREE.AdditiveBlending, sizeAttenuation: true
-  });
-  particles = new THREE.Points(pGeo, pMat);
-  scene.add(particles);
-
-  // Floating cubes / dodecahedrons (industrial vibe)
-  const cubes = new THREE.Group();
-  for (let i = 0; i < 8; i++) {
-    const geo = i % 2 === 0 ? new THREE.IcosahedronGeometry(8, 0) : new THREE.OctahedronGeometry(7, 0);
-    const mat = new THREE.MeshBasicMaterial({
-      color: i % 3 === 0 ? 0xff2bd6 : (i % 3 === 1 ? 0x00f0ff : 0x7c3aed),
-      wireframe: true, transparent: true, opacity: 0.5
-    });
-    const m = new THREE.Mesh(geo, mat);
-    const a = (i / 8) * Math.PI * 2;
-    m.position.set(Math.cos(a) * 200, Math.sin(a) * 130, Math.sin(a * 2) * 100);
-    m.userData = { sp: 0.3 + Math.random() * 0.5, ph: Math.random() * Math.PI * 2 };
-    cubes.add(m);
+    const sCount = 35;
+    const sGeo = new THREE.BufferGeometry();
+    const sPos = new Float32Array(sCount * 3);
+    const sVel = [];
+    for (let j = 0; j < sCount; j++) {
+      sPos[j*3] = stack.position.x + (Math.random() - 0.5) * 14;
+      sPos[j*3+1] = stack.position.y + 30 + Math.random() * 90;
+      sPos[j*3+2] = (Math.random() - 0.5) * 14;
+      sVel.push(0.3 + Math.random() * 0.5);
+    }
+    sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+    const smoke = new THREE.Points(sGeo, new THREE.PointsMaterial({
+      color: 0xff2bd6, size: 3, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending
+    }));
+    smoke.userData = { velocities: sVel, baseX: stack.position.x };
+    factoryGroup.add(smoke);
+    smokeParticles.push(smoke);
   }
-  scene.add(cubes);
-  window.__cubes = cubes;
+  factoryGroup.position.set(0, -40, -180);
+  scene.add(factoryGroup);
+  window.__smoke = smokeParticles;
+
+  // ============ INTERLOCKING GEARS (left foreground) ============
+  const gearsGroup = new THREE.Group();
+  const gear1 = new THREE.Mesh(makeGearGeometry(12, 38, 30, 9),
+    new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.75 }));
+  gearsGroup.add(gear1);
+  const gear2 = new THREE.Mesh(makeGearGeometry(10, 26, 20, 9),
+    new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.75 }));
+  gear2.position.set(58, 22, 0);
+  gearsGroup.add(gear2);
+  const gear3 = new THREE.Mesh(makeGearGeometry(14, 30, 24, 9),
+    new THREE.MeshBasicMaterial({ color: 0xff2bd6, wireframe: true, transparent: true, opacity: 0.75 }));
+  gear3.position.set(-50, -38, 0);
+  gearsGroup.add(gear3);
+  gearsGroup.position.set(-185, 35, 60);
+  scene.add(gearsGroup);
+  window.__gears = { g1: gear1, g2: gear2, g3: gear3 };
+
+  // ============ ROBOT ARM (right foreground) ============
+  const robotGroup = new THREE.Group();
+  const armMat = new THREE.MeshBasicMaterial({ color: 0xff7a00, wireframe: true, transparent: true, opacity: 0.75 });
+  const armBase = new THREE.Mesh(new THREE.CylinderGeometry(22, 28, 14, 12), armMat);
+  armBase.position.set(0, -42, 0);
+  robotGroup.add(armBase);
+
+  const arm1Pivot = new THREE.Group();
+  arm1Pivot.position.set(0, -35, 0);
+  const arm1 = new THREE.Mesh(new THREE.BoxGeometry(14, 65, 14), armMat);
+  arm1.position.y = 32;
+  arm1Pivot.add(arm1);
+  robotGroup.add(arm1Pivot);
+
+  const arm2Pivot = new THREE.Group();
+  arm2Pivot.position.set(0, 65, 0);
+  const arm2 = new THREE.Mesh(new THREE.BoxGeometry(12, 58, 12), armMat);
+  arm2.position.y = 26;
+  arm2Pivot.add(arm2);
+  arm1Pivot.add(arm2Pivot);
+
+  const endEff = new THREE.Mesh(new THREE.ConeGeometry(9, 18, 8),
+    new THREE.MeshBasicMaterial({ color: 0x22ffaa, wireframe: true, transparent: true, opacity: 0.85 }));
+  endEff.position.y = 58;
+  endEff.rotation.x = Math.PI;
+  arm2Pivot.add(endEff);
+
+  const sparkGeo = new THREE.BufferGeometry();
+  const sparkPos = new Float32Array(35 * 3);
+  for (let i = 0; i < 35; i++) {
+    sparkPos[i*3] = (Math.random() - 0.5) * 32;
+    sparkPos[i*3+1] = -Math.random() * 32 - 12;
+    sparkPos[i*3+2] = (Math.random() - 0.5) * 32;
+  }
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+  const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
+    color: 0xffd166, size: 2.5, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending
+  }));
+  endEff.add(sparks);
+  robotGroup.position.set(195, -15, 40);
+  scene.add(robotGroup);
+  window.__robot = { base: armBase, a1: arm1Pivot, a2: arm2Pivot, sparks };
+
+  // ============ CONVEYOR BELT (bottom) ============
+  const conveyorGroup = new THREE.Group();
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(310, 7, 24),
+    new THREE.MeshBasicMaterial({ color: 0x4a5070, wireframe: true, transparent: true, opacity: 0.55 }));
+  conveyorGroup.add(belt);
+  const boxes = [];
+  const boxMat = new THREE.MeshBasicMaterial({ color: 0xff7a00, wireframe: true, transparent: true, opacity: 0.75 });
+  for (let i = 0; i < 5; i++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(16, 16, 16), boxMat);
+    b.position.set(-150 + i * 70, 12, 0);
+    conveyorGroup.add(b);
+    boxes.push(b);
+  }
+  conveyorGroup.position.set(0, -150, 90);
+  scene.add(conveyorGroup);
+  window.__boxes = boxes;
+
+  // ============ KPI BARS + GAUGE (floating top) ============
+  const kpiGroup = new THREE.Group();
+  const barColors = [0x00f0ff, 0x7c3aed, 0xff2bd6, 0x22ffaa, 0xffd166, 0x00f0ff];
+  const bars = [];
+  for (let i = 0; i < 6; i++) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(9, 32, 9),
+      new THREE.MeshBasicMaterial({ color: barColors[i], wireframe: true, transparent: true, opacity: 0.7 }));
+    bar.position.set(-115 + i * 42, 0, 0);
+    bar.userData = { ph: i * 0.6 };
+    kpiGroup.add(bar);
+    bars.push(bar);
+  }
+  const gauge = new THREE.Mesh(new THREE.TorusGeometry(24, 2, 8, 56, Math.PI * 1.4),
+    new THREE.MeshBasicMaterial({ color: 0x22ffaa, transparent: true, opacity: 0.75 }));
+  gauge.position.set(155, 6, 0);
+  kpiGroup.add(gauge);
+  kpiGroup.position.set(0, 140, 70);
+  scene.add(kpiGroup);
+  window.__kpi = { bars, gauge };
+
+  // ============ GRID FLOOR ============
+  const grid = new THREE.GridHelper(900, 26, 0x7c3aed, 0x1c2333);
+  grid.material.opacity = 0.18;
+  grid.material.transparent = true;
+  grid.position.y = -195;
+  scene.add(grid);
+
+  // ============ AMBIENT PARTICLES ============
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(700 * 3);
+  for (let i = 0; i < 700 * 3; i++) pPos[i] = (Math.random() - 0.5) * 1700;
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
+    color: 0x00f0ff, size: 1.2, transparent: true, opacity: 0.35,
+    blending: THREE.AdditiveBlending, sizeAttenuation: true
+  }));
+  scene.add(particles);
 
   document.addEventListener('mousemove', (e) => {
     mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
     mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
   });
-
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -560,26 +685,51 @@ function initThree() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const t = Date.now() * 0.0003;
-  if (torus) {
-    torus.rotation.x = t * 0.7;
-    torus.rotation.y = t * 0.5;
+  const t = Date.now() * 0.001;
+
+  if (window.__gears) {
+    window.__gears.g1.rotation.z = t * 0.5;
+    window.__gears.g2.rotation.z = -t * 0.7 + 0.3;
+    window.__gears.g3.rotation.z = -t * 0.45 + 0.5;
   }
-  if (window.__ring) window.__ring.rotation.z = t * 0.8;
-  if (particles) {
-    particles.rotation.y = t * 0.05;
-    particles.rotation.x = t * 0.02;
+  if (window.__robot) {
+    window.__robot.base.rotation.y = t * 0.3;
+    window.__robot.a1.rotation.z = Math.sin(t * 0.6) * 0.3 + 0.1;
+    window.__robot.a2.rotation.z = Math.sin(t * 0.8 + 1) * 0.5;
+    if (window.__robot.sparks) {
+      window.__robot.sparks.material.opacity = 0.4 + Math.abs(Math.sin(t * 14)) * 0.5;
+    }
   }
-  if (window.__cubes) {
-    window.__cubes.rotation.y = t * 0.3;
-    window.__cubes.children.forEach(c => {
-      c.rotation.x += 0.005 * c.userData.sp;
-      c.rotation.y += 0.008 * c.userData.sp;
-      c.position.y += Math.sin(t * 4 + c.userData.ph) * 0.15;
+  if (window.__boxes) {
+    window.__boxes.forEach(b => {
+      b.position.x += 0.5;
+      if (b.position.x > 155) b.position.x = -155;
+      b.rotation.y = t * 0.6;
     });
   }
-  camera.position.x += (mouseX * 40 - camera.position.x) * 0.04;
-  camera.position.y += (-mouseY * 30 - camera.position.y) * 0.04;
+  if (window.__kpi) {
+    window.__kpi.bars.forEach(bar => {
+      const h = 25 + Math.sin(t * 1.5 + bar.userData.ph) * 20;
+      bar.scale.y = h / 32;
+      bar.position.y = (h - 32) / 2;
+    });
+    window.__kpi.gauge.rotation.z = Math.sin(t * 0.5) * 0.6;
+  }
+  if (window.__smoke) {
+    window.__smoke.forEach(s => {
+      const pos = s.geometry.attributes.position;
+      const vels = s.userData.velocities;
+      for (let i = 0; i < pos.count; i++) {
+        pos.array[i*3+1] += vels[i];
+        if (pos.array[i*3+1] > 220) pos.array[i*3+1] = 30;
+      }
+      pos.needsUpdate = true;
+    });
+  }
+  if (particles) particles.rotation.y = t * 0.02;
+
+  camera.position.x += (mouseX * 50 - camera.position.x) * 0.04;
+  camera.position.y += (30 - mouseY * 30 - camera.position.y) * 0.04;
   camera.lookAt(0, 0, 0);
   renderer.render(scene, camera);
 }
